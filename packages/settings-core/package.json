@@ -1,0 +1,21 @@
+{
+  "name": "@to-much-talker/settings-core",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@to-much-talker/db": "workspace:*",
+    "@to-much-talker/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "vitest": "^3.0.0"
+  }
+}
