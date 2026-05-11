@@ -50,6 +50,12 @@ export const EnvSchema = z.object({
     .refine(isBase64Of32Bytes, 'MASTER_ENC_KEY must be a base64-encoded 32-byte key'),
 
   // --- OPTIONAL with defaults ---
+  MASTER_ENC_KEY_VERSION: z
+    .string()
+    .default('1')
+    .transform((s) => parseInt(s, 10))
+    .pipe(z.number().int().positive('MASTER_ENC_KEY_VERSION must be a positive integer')),
+
   DATABASE_URL: z
     .string()
     .default('sqlite://./data/bot.db')
