@@ -1,0 +1,13 @@
+pre-commit:
+  parallel: false
+  commands:
+    lint-staged:
+      glob: '*.{ts,tsx,js,jsx,mjs,cjs}'
+      run: yarn eslint --fix {staged_files} && yarn prettier --write {staged_files}
+    typecheck:
+      run: yarn tsc --noEmit -p tsconfig.base.json || true
+
+commit-msg:
+  commands:
+    commitlint:
+      run: yarn commitlint --edit {1}
