@@ -1,4 +1,4 @@
-import { createRootRoute, Outlet } from '@tanstack/react-router'
+import { createRootRoute, Outlet, Link } from '@tanstack/react-router'
 import type { JSX } from 'react'
 import '../styles/globals.css'
 
@@ -16,15 +16,15 @@ function RootLayout(): JSX.Element {
             <div className="max-w-6xl mx-auto flex items-center gap-6">
               <h1 className="text-lg font-semibold">TMT Playground</h1>
               <div className="flex gap-4 text-sm">
-                <a href="/" className="text-muted-foreground hover:text-foreground">
+                <Link to="/" className="text-muted-foreground hover:text-foreground [&.active]:text-foreground">
                   Home
-                </a>
-                <a href="/sandbox" className="text-muted-foreground hover:text-foreground">
+                </Link>
+                <Link to="/sandbox" className="text-muted-foreground hover:text-foreground [&.active]:text-foreground">
                   TTS Sandbox
-                </a>
-                <a href="/inspector" className="text-muted-foreground hover:text-foreground">
+                </Link>
+                <Link to="/inspector" className="text-muted-foreground hover:text-foreground [&.active]:text-foreground">
                   Settings Inspector
-                </a>
+                </Link>
               </div>
             </div>
           </nav>

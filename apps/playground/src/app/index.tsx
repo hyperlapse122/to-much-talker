@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import type { JSX } from 'react'
 
 function HomePage(): JSX.Element {
@@ -12,25 +12,25 @@ function HomePage(): JSX.Element {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <a
-          href="/sandbox"
+        <Link
+          to="/sandbox"
           className="block p-6 rounded-lg border border-border hover:border-primary transition-colors"
         >
           <h3 className="font-semibold">TTS Sandbox</h3>
           <p className="text-sm text-muted-foreground mt-1">
             Test TTS synthesis with different models and voices.
           </p>
-        </a>
+        </Link>
 
-        <a
-          href="/inspector"
+        <Link
+          to="/inspector"
           className="block p-6 rounded-lg border border-border hover:border-primary transition-colors"
         >
           <h3 className="font-semibold">Settings Inspector</h3>
           <p className="text-sm text-muted-foreground mt-1">
             View and inspect guild settings and audit logs.
           </p>
-        </a>
+        </Link>
       </div>
 
       <div className="text-sm text-muted-foreground">
