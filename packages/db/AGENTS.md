@@ -32,3 +32,27 @@ import { sqlite, pg } from '@to-much-talker/db'
 - All TS imports MUST use `.js` extensions (NodeNext module resolution)
 - Use `import type` for type-only imports (`verbatimModuleSyntax: true`)
 - Both dialect schemas MUST stay in lockstep — adding a column to one without the other is a violation
+
+## Discriminated Union Pattern
+The `Db` type is a discriminated union:
+```typescript
+type SqliteDb = { dialect: 'sqlite'; db: ...; raw: Database; close(): void }
+type PgDb = { dialect: 'pg'; db: ...; raw: postgres.Sql; close(): Promise<void> }
+type Db = SqliteDb | PgDb
+```
+
+Always narrow before dialect-specific calls:
+```typescript
+if (isSqlite(db)) {
+  db.raw.exec('PRAGMA journal_mode=WAL')
+} else if (isPg(db)) {
+  // postgres-js specific
+}
+```
+
+## Opening a DB
+```typescript
+const result = await openDb(config.DATABASE_URL)
+if (!result.ok) process.exit(1) // invalid URL scheme
+const db = result.value
+```
