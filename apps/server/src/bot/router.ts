@@ -1,0 +1,78 @@
+import { Events, MessageFlags } from 'discord.js'
+import type { ChatInputCommandInteraction, Client } from 'discord.js'
+import { logger } from '../logger.js'
+
+const log = logger.child({ component: 'router' })
+
+/**
+ * Handler signature for a single slash command (or subcommand).
+ */
+export type CommandHandler = (interaction: ChatInputCommandInteraction) => Promise<void>
+
+/** Map key: `${commandName}` or `${commandName}.${subcommand}`. */
+type HandlerKey = string
+
+/**
+ * Dispatches `interactionCreate` events to registered command handlers.
+ *
+ * Slash commands are keyed by either `commandName` (no subcommand) or
+ * `commandName.subcommand` (when a subcommand is present). Per Task 13 spec,
+ * every interaction MUST receive a reply or editReply — handler errors are
+ * caught here so a thrown handler never times out the interaction.
+ */
+export class InteractionRouter {
+  readonly #handlers = new Map<HandlerKey, CommandHandler>()
+
+  /**
+   * Register a handler. Pass `null` for `subcommand` to handle the
+   * top-level command (commands without subcommands).
+   */
+  register(commandName: string, subcommand: string | null, handler: CommandHandler): void {
+    const key = subcommand !== null ? `${commandName}.${subcommand}` : commandName
+    this.#handlers.set(key, handler)
+  }
+
+  async dispatch(interaction: ChatInputCommandInteraction): Promise<void> {
+    const subcommand = interaction.options.getSubcommand(false)
+    const key =
+      subcommand !== null ? `${interaction.commandName}.${subcommand}` : interaction.commandName
+
+    const handler = this.#handlers.get(key)
+    if (handler === undefined) {
+      log.warn({ key }, 'No handler registered for command')
+      await interaction.reply({ content: 'Unknown command.', flags: MessageFlags.Ephemeral })
+      return
+    }
+
+    try {
+      await handler(interaction)
+    } catch (error) {
+      log.error(
+        { key, error: error instanceof Error ? error.message : String(error) },
+        'Command handler error',
+      )
+
+      const errorMessage = 'An error occurred while executing this command.'
+      try {
+        if (interaction.replied || interaction.deferred) {
+          await interaction.editReply({ content: errorMessage })
+        } else {
+          await interaction.reply({ content: errorMessage, flags: MessageFlags.Ephemeral })
+        }
+      } catch {
+        // Reply already sent or interaction expired — nothing we can do.
+      }
+    }
+  }
+
+  /**
+   * Attach a single `interactionCreate` listener to the given client that
+   * forwards chat-input commands to {@link dispatch}.
+   */
+  attachTo(client: Client): void {
+    client.on(Events.InteractionCreate, (interaction) => {
+      if (!interaction.isChatInputCommand()) return
+      void this.dispatch(interaction)
+    })
+  }
+}
