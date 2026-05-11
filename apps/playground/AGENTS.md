@@ -20,3 +20,10 @@ Dev-only TanStack Start application for TTS sandbox and settings inspection.
 - `src/app/sandbox.tsx` — TTS sandbox (Task 25)
 - `src/app/inspector.tsx` — Settings inspector (Task 26)
 - `src/styles/globals.css` — Tailwind v4 tokens
+
+## E2E Tests
+- Playwright config: `playwright.config.ts`
+- Test files: `tests/e2e/*.spec.ts`
+- Run: `yarn workspace @to-much-talker/playground test:e2e`
+- Tests run against the production build via `vite preview --port 5173`
+- Browser install (one-time): `yarn workspace @to-much-talker/playground exec playwright install chromium`

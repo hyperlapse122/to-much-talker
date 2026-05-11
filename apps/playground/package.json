@@ -7,6 +7,8 @@
     "dev": "vite dev --port 5173",
     "build": "vite build",
     "start": "vite preview",
+    "preview": "vite preview --port 5173",
+    "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -25,6 +27,7 @@
     "tailwindcss": "^4.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/node": "*",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
