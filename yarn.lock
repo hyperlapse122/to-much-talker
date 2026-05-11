@@ -651,7 +651,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@to-much-talker/shared@workspace:packages/shared":
+"@to-much-talker/config@workspace:packages/config":
+  version: 0.0.0-use.local
+  resolution: "@to-much-talker/config@workspace:packages/config"
+  dependencies:
+    "@to-much-talker/shared": "workspace:*"
+    typescript: "npm:^5.5.0"
+    zod: "npm:^3.0.0"
+  languageName: unknown
+  linkType: soft
+
+"@to-much-talker/shared@workspace:*, @to-much-talker/shared@workspace:packages/shared":
   version: 0.0.0-use.local
   resolution: "@to-much-talker/shared@workspace:packages/shared"
   dependencies:
