@@ -1,12 +1,5 @@
 import type { Config } from '@to-much-talker/config'
-import {
-  decode,
-  decrypt,
-  encode,
-  encrypt,
-  KeyRing,
-  parseMasterKey,
-} from '@to-much-talker/crypto'
+import { decode, decrypt, encode, encrypt, KeyRing, parseMasterKey } from '@to-much-talker/crypto'
 import { eq, isNotNull, openDb, pg, sqlite } from '@to-much-talker/db'
 
 import { logger } from '../logger.js'
@@ -42,10 +35,7 @@ export async function keyRotate(opts: KeyRotateOptions): Promise<void> {
 
   const currentKeyResult = parseMasterKey(config.MASTER_ENC_KEY)
   if (!currentKeyResult.ok) {
-    log.error(
-      { error: currentKeyResult.error.message },
-      'Failed to parse current MASTER_ENC_KEY',
-    )
+    log.error({ error: currentKeyResult.error.message }, 'Failed to parse current MASTER_ENC_KEY')
     process.exit(1)
   }
 

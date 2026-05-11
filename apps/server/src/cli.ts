@@ -83,9 +83,7 @@ export function parseCli(argv: string[]): CliOptions {
   if (cmd === 'key' && sub === 'rotate') {
     const idx = argv.indexOf('--new-key')
     const newKey = idx >= 0 ? argv[idx + 1] : undefined
-    return newKey === undefined
-      ? { command: 'key-rotate' }
-      : { command: 'key-rotate', newKey }
+    return newKey === undefined ? { command: 'key-rotate' } : { command: 'key-rotate', newKey }
   }
   if (cmd === 'migrate') return { command: 'migrate' }
   return { command: 'start' }

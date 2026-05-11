@@ -3,6 +3,10 @@
 Project-level agent instructions for the **To Much Talker** monorepo.
 These rules OVERRIDE the user-level AGENTS.md where they conflict.
 
+> **Scaffold Status**: Initial scaffold complete (May 2026). All 37 implementation tasks executed.
+> Build passes: `yarn turbo run lint typecheck test build` — 19 typecheck tasks, 70+ tests, all green.
+> Branch: `feature/scaffold-monorepo`
+
 ## Project Overview
 
 To Much Talker is a Discord TTS (text-to-speech) bot that synthesizes voice via OpenRouter TTS models

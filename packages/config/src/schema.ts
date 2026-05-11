@@ -64,9 +64,7 @@ export const EnvSchema = z.object({
       'DATABASE_URL must start with sqlite://, file:, postgres://, or postgresql://',
     ),
 
-  LOG_LEVEL: z
-    .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent'])
-    .default('info'),
+  LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent']).default('info'),
 
   TOTAL_SHARDS: z
     .string()
@@ -87,17 +85,18 @@ export const EnvSchema = z.object({
     .transform((s) => parseInt(s, 10))
     .pipe(z.number().int().positive('IDLE_TEXT_INACTIVITY_MS must be a positive integer')),
 
-  IDLE_LEAVE_ON_EMPTY: z
-    .string()
-    .default('true')
-    .transform(isTruthy),
+  IDLE_LEAVE_ON_EMPTY: z.string().default('true').transform(isTruthy),
 
   PLAYGROUND_PORT: z
     .string()
     .default('5173')
     .transform((s) => parseInt(s, 10))
     .pipe(
-      z.number().int().min(1, 'PLAYGROUND_PORT must be >= 1').max(65535, 'PLAYGROUND_PORT must be <= 65535'),
+      z
+        .number()
+        .int()
+        .min(1, 'PLAYGROUND_PORT must be >= 1')
+        .max(65535, 'PLAYGROUND_PORT must be <= 65535'),
     ),
 
   DOCS_PORT: z
@@ -108,20 +107,11 @@ export const EnvSchema = z.object({
       z.number().int().min(1, 'DOCS_PORT must be >= 1').max(65535, 'DOCS_PORT must be <= 65535'),
     ),
 
-  PLAYGROUND_MOCK_OPENROUTER: z
-    .string()
-    .default('false')
-    .transform(isTruthy),
+  PLAYGROUND_MOCK_OPENROUTER: z.string().default('false').transform(isTruthy),
 
-  PLAYGROUND_WRITE_ENABLED: z
-    .string()
-    .default('false')
-    .transform(isTruthy),
+  PLAYGROUND_WRITE_ENABLED: z.string().default('false').transform(isTruthy),
 
-  PLAYGROUND_ALLOW_ALL: z
-    .string()
-    .default('false')
-    .transform(isTruthy),
+  PLAYGROUND_ALLOW_ALL: z.string().default('false').transform(isTruthy),
 })
 
 /**

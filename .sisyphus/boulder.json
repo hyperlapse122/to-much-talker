@@ -1,0 +1,247 @@
+{
+  "active_plan": "/home/h82/workspaces/to-much-talker/.sisyphus/plans/scaffold-to-much-talker.md",
+  "started_at": "2026-05-11T15:17:08.476Z",
+  "session_ids": [
+    "ses_1e862f52bffec6Ohv8FXl1uKHK"
+  ],
+  "session_origins": {
+    "ses_1e862f52bffec6Ohv8FXl1uKHK": "direct"
+  },
+  "plan_name": "scaffold-to-much-talker",
+  "agent": "atlas",
+  "task_sessions": {
+    "todo:1": {
+      "task_key": "todo:1",
+      "task_label": "1",
+      "task_title": "Root monorepo configuration & repo hygiene",
+      "session_id": "ses_1e85fb44bffeZh4Sfo2HNzn9br",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-11T15:26:40.159Z"
+    },
+    "todo:2": {
+      "task_key": "todo:2",
+      "task_label": "2",
+      "task_title": "`packages/shared` — types, errors, Result, branded IDs",
+      "session_id": "ses_1e8578f84ffehWC7ebNRxWUAgU",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-11T15:35:17.887Z"
+    },
+    "todo:3": {
+      "task_key": "todo:3",
+      "task_label": "3",
+      "task_title": "`packages/config` — env validation with zod",
+      "session_id": "ses_1e85096d3ffeZbHB1VVOL7zlJ1",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-11T15:41:07.397Z"
+    },
+    "todo:4": {
+      "task_key": "todo:4",
+      "task_label": "4",
+      "task_title": "`packages/crypto` — AES-256-GCM with key versioning",
+      "session_id": "ses_1e84c3ae0ffeqh4iWvHzaZ2YTW",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-11T15:47:45.420Z"
+    },
+    "todo:5": {
+      "task_key": "todo:5",
+      "task_label": "5",
+      "task_title": "`packages/i18n` — Paraglide JS setup with en/ko/ja + Discord locale helper",
+      "session_id": "ses_1e845451dffezZJF48KVbfwBU4",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-11T16:00:37.924Z"
+    },
+    "todo:6": {
+      "task_key": "todo:6",
+      "task_label": "6",
+      "task_title": "`packages/test-utils` — mocked Discord interaction builders + ephemeral DB helpers",
+      "session_id": "ses_1e839d104ffeYvS3uSybiVtMyF",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-11T16:07:21.775Z"
+    },
+    "todo:7": {
+      "task_key": "todo:7",
+      "task_label": "7",
+      "task_title": "`packages/db` — parallel SQLite & Postgres schemas + shared types",
+      "session_id": "ses_1e833d9f1ffev4NUWYCqnwLcSY",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-11T16:12:03.937Z"
+    },
+    "todo:8": {
+      "task_key": "todo:8",
+      "task_label": "8",
+      "task_title": "`packages/db` runtime — `Db = SqliteDb | PgDb` discriminated union, openDb, dialect detection",
+      "session_id": "ses_1e82f2bb9ffe2GiCWbCRljbwS6",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-05-11T16:17:19.442Z"
+    },
+    "todo:9": {
+      "task_key": "todo:9",
+      "task_label": "9",
+      "task_title": "`packages/db` migrations & drizzle-kit configs",
+      "session_id": "ses_1e82b572effef3ntouZI25QQk5",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-11T16:20:35.098Z"
+    },
+    "todo:10": {
+      "task_key": "todo:10",
+      "task_label": "10",
+      "task_title": "`packages/ai` — OpenRouter client (TTS via `openai` SDK; chat via TanStack AI)",
+      "session_id": "ses_1e827f73fffes1DaZwyqmkG38Y",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-11T16:24:53.500Z"
+    },
+    "todo:11": {
+      "task_key": "todo:11",
+      "task_label": "11",
+      "task_title": "`packages/settings-core` — resolver, cache, IPC invalidator (standalone package)",
+      "session_id": "ses_1e823922affeHXmdvoshf3NIW2",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-05-11T16:30:56.710Z"
+    },
+    "todo:12": {
+      "task_key": "todo:12",
+      "task_label": "12",
+      "task_title": "`apps/server` scaffolding — entrypoint, CLI parser, role auto-detect, logger",
+      "session_id": "ses_1e81df1abffeVm6DgkfNPHzasP",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-11T16:37:46.480Z"
+    },
+    "todo:13": {
+      "task_key": "todo:13",
+      "task_label": "13",
+      "task_title": "Discord client setup + slash command registry + Paraglide → Discord locale bridge",
+      "session_id": "ses_1e81849b3ffe8fyRqrtl0MrsJn",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-11T16:45:26.743Z"
+    },
+    "todo:14": {
+      "task_key": "todo:14",
+      "task_label": "14",
+      "task_title": "Voice pipeline — prism-media + FFmpeg + @discordjs/opus + abstract Player interface",
+      "session_id": "ses_1e81118c9ffeuFH4Cf6XZHZ6qj",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-05-11T16:50:45.496Z"
+    },
+    "todo:15": {
+      "task_key": "todo:15",
+      "task_label": "15",
+      "task_title": "Queue strategy interface + 3 built-in implementations (drop-oldest, drop-newest, interrupt)",
+      "session_id": "ses_1e80c637affe6e6yMppBh3k46K",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-05-11T16:55:26.956Z"
+    },
+    "todo:16": {
+      "task_key": "todo:16",
+      "task_label": "16",
+      "task_title": "Idle behavior — text-inactivity timer + voice-empty detector + combined leave",
+      "session_id": "ses_1e8081713ffeqbtybq4LLC7g7v",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-11T16:58:40.503Z"
+    },
+    "todo:17": {
+      "task_key": "todo:17",
+      "task_label": "17",
+      "task_title": "Cluster manager + worker — discord-hybrid-sharding integration",
+      "session_id": "ses_1e8048e43ffejQEEWUi3sjauB3",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-05-11T17:04:37.389Z"
+    },
+    "todo:18": {
+      "task_key": "todo:18",
+      "task_label": "18",
+      "task_title": "CLI `key gen` + `key rotate` subcommands",
+      "session_id": "ses_1e7ffb1edffeUAjf2HohwyVgvo",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-11T17:14:40.854Z"
+    },
+    "todo:19": {
+      "task_key": "todo:19",
+      "task_label": "19",
+      "task_title": "Slash commands — /tts join, /tts leave, /tts skip, /tts clear",
+      "session_id": "ses_1e7f60684ffe6rLItrbn0I1z7U",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-11T17:25:18.724Z"
+    },
+    "todo:24": {
+      "task_key": "todo:24",
+      "task_label": "24",
+      "task_title": "`apps/playground` scaffolding — TanStack Start + Tailwind v4 + Shadcn + i18n + localhost bind",
+      "session_id": "ses_1e7ebeb03ffeLuwXPdZ4mjBsTd",
+      "agent": "Sisyphus-Junior",
+      "updated_at": "2026-05-11T18:06:53.627Z"
+    },
+    "todo:25": {
+      "task_key": "todo:25",
+      "task_label": "25",
+      "task_title": "`apps/playground` TTS sandbox page",
+      "session_id": "ses_1e7c69e19fferqb43aU8sKyzVv",
+      "agent": "Sisyphus-Junior",
+      "category": "visual-engineering",
+      "updated_at": "2026-05-11T18:37:55.381Z"
+    },
+    "todo:27": {
+      "task_key": "todo:27",
+      "task_label": "27",
+      "task_title": "`apps/docs` scaffolding — TanStack Start SSR + markdown pipeline + Pagefind + i18n",
+      "session_id": "ses_1e771b461ffeeHtjzjjZKfQ2ZI",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-11T19:45:07.315Z"
+    },
+    "todo:29": {
+      "task_key": "todo:29",
+      "task_label": "29",
+      "task_title": "Unit + integration test suite (crypto, settings, queue, cost, DB, i18n, slash commands)",
+      "session_id": "ses_1e76c0450ffeAAVQoH6sZIjIMs",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-11T19:58:35.961Z"
+    },
+    "todo:31": {
+      "task_key": "todo:31",
+      "task_label": "31",
+      "task_title": "Playwright e2e — playground (TTS sandbox + settings inspector + audit viewer)",
+      "session_id": "ses_1e76067c2ffe8YR6UxgKSVSYas",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-11T20:17:03.892Z"
+    },
+    "todo:33": {
+      "task_key": "todo:33",
+      "task_label": "33",
+      "task_title": "`apps/server/Dockerfile` — node:24-slim + FFmpeg + multi-stage + non-root user",
+      "session_id": "ses_1e74f1c75ffeIOi51GN94URxRX",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-11T20:22:02.535Z"
+    },
+    "final-wave:f1": {
+      "task_key": "final-wave:f1",
+      "task_label": "F1",
+      "task_title": "**Plan Compliance Audit** — `oracle`",
+      "session_id": "ses_1e747cd28ffe3ijmitIcCLiUr0",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-11T20:27:57.141Z"
+    }
+  }
+}

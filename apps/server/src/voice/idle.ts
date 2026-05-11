@@ -59,10 +59,7 @@ export class IdleWatcher extends EventEmitter<IdleWatcherEvents> {
     }
     this.#textInactivityTimer = setTimeout(() => {
       if (!this.#destroyed) {
-        log.info(
-          { guildId: this.#opts.guildId },
-          'Text inactivity timeout — leaving voice channel',
-        )
+        log.info({ guildId: this.#opts.guildId }, 'Text inactivity timeout — leaving voice channel')
         void this.#triggerLeave('text-inactivity')
       }
     }, this.#opts.idleTextInactivityMs)
@@ -107,16 +104,10 @@ export class IdleWatcher extends EventEmitter<IdleWatcherEvents> {
     if (humanCount === 0) {
       // Start grace timer if not already running
       if (this.#voiceEmptyTimer === null) {
-        log.debug(
-          { guildId: this.#opts.guildId },
-          'Voice channel empty — starting grace timer',
-        )
+        log.debug({ guildId: this.#opts.guildId }, 'Voice channel empty — starting grace timer')
         this.#voiceEmptyTimer = setTimeout(() => {
           if (!this.#destroyed) {
-            log.info(
-              { guildId: this.#opts.guildId },
-              'Voice channel empty after grace — leaving',
-            )
+            log.info({ guildId: this.#opts.guildId }, 'Voice channel empty after grace — leaving')
             void this.#triggerLeave('voice-empty')
           }
         }, GRACE_MS)
@@ -124,10 +115,7 @@ export class IdleWatcher extends EventEmitter<IdleWatcherEvents> {
     } else {
       // Humans present — cancel grace timer
       if (this.#voiceEmptyTimer !== null) {
-        log.debug(
-          { guildId: this.#opts.guildId },
-          'Humans returned — cancelling grace timer',
-        )
+        log.debug({ guildId: this.#opts.guildId }, 'Humans returned — cancelling grace timer')
         clearTimeout(this.#voiceEmptyTimer)
         this.#voiceEmptyTimer = null
       }

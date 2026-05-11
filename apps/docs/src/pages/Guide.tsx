@@ -89,7 +89,11 @@ export function Guide(): JSX.Element {
   const content = slug !== undefined ? CONTENT[slug] : undefined
 
   if (content === undefined) {
-    return <div><h1>Page not found: {slug}</h1></div>
+    return (
+      <div>
+        <h1>Page not found: {slug}</h1>
+      </div>
+    )
   }
 
   return (

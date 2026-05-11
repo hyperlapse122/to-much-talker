@@ -18,9 +18,7 @@ export function loadConfig(
 ): Result<Config, ConfigError> {
   const result = EnvSchema.safeParse(env)
   if (!result.success) {
-    const issues = result.error.issues
-      .map((i) => `${i.path.join('.')}: ${i.message}`)
-      .join(', ')
+    const issues = result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', ')
     return { ok: false, error: new ConfigError(`Invalid env: ${issues}`) }
   }
   return { ok: true, value: result.data }
@@ -36,9 +34,7 @@ export function loadConfig(
  * `process.stderr.write` directly because pino is not yet initialized when
  * config is loaded at startup.
  */
-export function loadConfigOrExit(
-  env: Record<string, string | undefined> = process.env,
-): Config {
+export function loadConfigOrExit(env: Record<string, string | undefined> = process.env): Config {
   const result = loadConfig(env)
   if (!result.ok) {
     process.stderr.write(`[config] Fatal: ${result.error.message}\n`)

@@ -19,10 +19,10 @@ function Inspector(): JSX.Element {
   const handleLookup = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
     if (guildId.length === 0) return
-    
+
     setIsLoading(true)
     setError(null)
-    
+
     try {
       // Placeholder: in real implementation, fetch from API
       setSettings({
@@ -43,9 +43,7 @@ function Inspector(): JSX.Element {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold">Settings Inspector</h2>
-        <p className="text-gray-400 mt-1">
-          View guild settings and audit logs (read-only).
-        </p>
+        <p className="text-gray-400 mt-1">View guild settings and audit logs (read-only).</p>
       </div>
 
       <form onSubmit={handleLookup} className="flex gap-3">
@@ -86,8 +84,9 @@ function Inspector(): JSX.Element {
 
       <div className="mt-8 p-4 bg-blue-950 border border-blue-800 rounded-md">
         <p className="text-sm text-blue-300">
-          Note: This inspector requires <code className="bg-blue-900 px-1 rounded">DATABASE_URL</code> to be configured.
-          Settings are read-only by default.
+          Note: This inspector requires{' '}
+          <code className="bg-blue-900 px-1 rounded">DATABASE_URL</code> to be configured. Settings
+          are read-only by default.
         </p>
       </div>
     </div>

@@ -12,8 +12,18 @@ vi.mock('@discordjs/voice', () => ({
   getVoiceConnection: vi.fn(() => undefined),
   entersState: vi.fn(),
   AudioPlayerStatus: { Idle: 'idle', Playing: 'playing', Paused: 'paused' },
-  VoiceConnectionStatus: { Disconnected: 'disconnected', Signalling: 'signalling', Connecting: 'connecting' },
-  StreamType: { Arbitrary: 'arbitrary', Opus: 'opus', OggOpus: 'ogg/opus', WebmOpus: 'webm/opus', Raw: 'raw' },
+  VoiceConnectionStatus: {
+    Disconnected: 'disconnected',
+    Signalling: 'signalling',
+    Connecting: 'connecting',
+  },
+  StreamType: {
+    Arbitrary: 'arbitrary',
+    Opus: 'opus',
+    OggOpus: 'ogg/opus',
+    WebmOpus: 'webm/opus',
+    Raw: 'raw',
+  },
   NoSubscriberBehavior: { Pause: 'pause', Play: 'play', Stop: 'stop' },
 }))
 

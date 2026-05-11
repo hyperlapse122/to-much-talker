@@ -20,18 +20,18 @@ function Sandbox(): JSX.Element {
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
     if (text.length === 0) return
-    
+
     setIsLoading(true)
     setError(null)
     setAudioUrl(null)
-    
+
     try {
       // In dev mode, call server API endpoint (placeholder)
       // The actual TTS synthesis would be done via a server function
       const mockAudio = new Blob(['mock-audio-data'], { type: 'audio/mpeg' })
       const url = URL.createObjectURL(mockAudio)
       setAudioUrl(url)
-      
+
       // In real implementation:
       // const response = await fetch('/api/tts/synthesize', {
       //   method: 'POST',
@@ -49,7 +49,9 @@ function Sandbox(): JSX.Element {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold">TTS Sandbox</h2>
-        <p className="text-gray-400 mt-1">Test text-to-speech synthesis with different models and voices.</p>
+        <p className="text-gray-400 mt-1">
+          Test text-to-speech synthesis with different models and voices.
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -64,7 +66,9 @@ function Sandbox(): JSX.Element {
             className="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm"
           >
             {TTS_MODELS.map((m) => (
-              <option key={m.id} value={m.id}>{m.label}</option>
+              <option key={m.id} value={m.id}>
+                {m.label}
+              </option>
             ))}
           </select>
         </div>
@@ -142,8 +146,9 @@ function Sandbox(): JSX.Element {
 
       <div className="mt-8 p-4 bg-yellow-950 border border-yellow-800 rounded-md">
         <p className="text-sm text-yellow-300">
-          Note: This sandbox is for development use only. 
-          Set <code className="bg-yellow-900 px-1 rounded">PLAYGROUND_MOCK_OPENROUTER=true</code> to avoid real API calls.
+          Note: This sandbox is for development use only. Set{' '}
+          <code className="bg-yellow-900 px-1 rounded">PLAYGROUND_MOCK_OPENROUTER=true</code> to
+          avoid real API calls.
         </p>
       </div>
     </div>
