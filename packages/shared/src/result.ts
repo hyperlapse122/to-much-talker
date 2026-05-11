@@ -18,10 +18,7 @@ export function isErr<T, E>(result: Result<T, E>): result is { ok: false; error:
   return !result.ok
 }
 
-export function mapResult<T, U, E>(
-  result: Result<T, E>,
-  fn: (value: T) => U,
-): Result<U, E> {
+export function mapResult<T, U, E>(result: Result<T, E>, fn: (value: T) => U): Result<U, E> {
   if (result.ok) {
     return ok(fn(result.value))
   }

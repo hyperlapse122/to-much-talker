@@ -42,7 +42,19 @@ export function asClusterId(n: number): ClusterId {
 }
 
 // Zod schemas
-export const GuildIdSchema = z.string().regex(SNOWFLAKE).transform((s) => s as GuildId)
-export const ChannelIdSchema = z.string().regex(SNOWFLAKE).transform((s) => s as ChannelId)
-export const UserIdSchema = z.string().regex(SNOWFLAKE).transform((s) => s as UserId)
-export const MessageIdSchema = z.string().regex(SNOWFLAKE).transform((s) => s as MessageId)
+export const GuildIdSchema = z
+  .string()
+  .regex(SNOWFLAKE)
+  .transform((s) => s as GuildId)
+export const ChannelIdSchema = z
+  .string()
+  .regex(SNOWFLAKE)
+  .transform((s) => s as ChannelId)
+export const UserIdSchema = z
+  .string()
+  .regex(SNOWFLAKE)
+  .transform((s) => s as UserId)
+export const MessageIdSchema = z
+  .string()
+  .regex(SNOWFLAKE)
+  .transform((s) => s as MessageId)
