@@ -1,0 +1,41 @@
+{
+  "name": "@to-much-talker/server",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "tmt-bot": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "start": "node --env-file=.env dist/index.js start",
+    "dev": "node --import tsx --watch src/index.ts start",
+    "cli": "node dist/index.js"
+  },
+  "dependencies": {
+    "@discordjs/opus": "^0.10.0",
+    "@discordjs/voice": "^0.18.0",
+    "@to-much-talker/ai": "workspace:*",
+    "@to-much-talker/config": "workspace:*",
+    "@to-much-talker/crypto": "workspace:*",
+    "@to-much-talker/db": "workspace:*",
+    "@to-much-talker/i18n": "workspace:*",
+    "@to-much-talker/settings-core": "workspace:*",
+    "@to-much-talker/shared": "workspace:*",
+    "commander": "^12.0.0",
+    "discord-hybrid-sharding": "^2.0.0",
+    "discord.js": "^14.0.0",
+    "pino": "^9.0.0",
+    "prism-media": "^1.0.0"
+  },
+  "devDependencies": {
+    "@to-much-talker/test-utils": "workspace:*",
+    "@types/node": "*",
+    "pino-pretty": "^11.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^3.0.0"
+  }
+}

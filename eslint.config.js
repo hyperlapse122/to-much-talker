@@ -96,7 +96,12 @@ export default tseslint.config(
   },
   // Config files are allowed default export
   {
-    files: ['eslint.config.{js,mjs,cjs}', 'commitlint.config.{js,mjs,cjs}'],
+    files: [
+      'eslint.config.{js,mjs,cjs}',
+      'commitlint.config.{js,mjs,cjs}',
+      'vitest.config.{ts,js,mjs,cjs}',
+      '**/vitest.config.{ts,js,mjs,cjs}',
+    ],
     rules: {
       'no-restricted-syntax': 'off',
     },

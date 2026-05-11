@@ -20,11 +20,13 @@
     "@commitlint/cli": "^19.0.0",
     "@commitlint/config-conventional": "^19.0.0",
     "@eslint/js": "^9.0.0",
+    "@vitest/coverage-v8": "^3.0.0",
     "eslint": "^9.0.0",
     "lefthook": "^1.6.0",
     "prettier": "^3.0.0",
     "turbo": "^2.0.0",
     "typescript": "^5.5.0",
-    "typescript-eslint": "^8.0.0"
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^3.0.0"
   }
 }
