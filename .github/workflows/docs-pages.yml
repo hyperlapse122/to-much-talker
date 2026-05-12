@@ -46,6 +46,9 @@ jobs:
       - name: Add SPA fallback
         run: cp apps/docs/dist/index.html apps/docs/dist/404.html
 
+      - name: Verify Pagefind output
+        run: test -f apps/docs/dist/pagefind/pagefind.js
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:

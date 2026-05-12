@@ -67,6 +67,10 @@ jobs:
       - name: Run Playwright tests
         run: yarn workspace @to-much-talker/docs test:e2e
 
+      - name: Ensure report directory exists
+        if: always()
+        run: mkdir -p apps/docs/playwright-report
+
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
         if: always()
