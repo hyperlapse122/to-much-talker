@@ -1,0 +1,5 @@
+QA evidence for T3 (docs tsconfig aliases)
+
+- jq -r '.extends' apps/docs/tsconfig.json -> ../../tsconfig.base.json
+- lsp_diagnostics apps/docs/src/vite-env.d.ts -> No diagnostics found
+- yarn workspace @to-much-talker/docs build -> failed: [UNRESOLVED_ENTRY] Cannot resolve entry module index.html
