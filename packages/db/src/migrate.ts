@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
@@ -6,7 +7,27 @@ import type { Db } from './client.js'
 import { isPg, isSqlite } from './client.js'
 
 const currentDir = dirname(fileURLToPath(import.meta.url))
-const migrationsDir = join(currentDir, '..', '..', 'migrations')
+const migrationsDir = resolveMigrationsDir()
+
+function resolveMigrationsDir(): string {
+  const candidates = [
+    join(currentDir, '..', 'migrations'),
+    join(currentDir, '..', '..', 'migrations'),
+    join(process.cwd(), 'migrations'),
+    join(process.cwd(), 'packages', 'db', 'migrations'),
+    join(process.cwd(), '..', '..', 'packages', 'db', 'migrations'),
+  ]
+
+  const match = candidates.find((candidate) =>
+    existsSync(join(candidate, 'sqlite', 'meta', '_journal.json')),
+  )
+
+  if (match === undefined) {
+    throw new Error('Could not locate database migrations directory')
+  }
+
+  return match
+}
 
 export async function runMigrations(db: Db): Promise<void> {
   if (isSqlite(db)) {

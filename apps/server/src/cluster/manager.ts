@@ -4,11 +4,12 @@ import type { Config } from '@to-much-talker/config'
 import { openDb, runMigrations } from '@to-much-talker/db'
 import { ClusterManager } from 'discord-hybrid-sharding'
 
+import { registerCommands } from '../bot/commands-registry.js'
 import { logger } from '../logger.js'
 import { isIpcMessage } from './ipc.js'
 
 const log = logger.child({ component: 'cluster/manager' })
-const __dirname = dirname(fileURLToPath(import.meta.url))
+const currentDir = dirname(fileURLToPath(import.meta.url))
 
 export async function runClusterManager(config: Config): Promise<void> {
   log.info('Cluster manager starting')
@@ -24,8 +25,10 @@ export async function runClusterManager(config: Config): Promise<void> {
   await dbResult.value.close()
   log.info('Migrations complete')
 
+  await registerCommands(config)
+
   const totalShards = config.TOTAL_SHARDS === 'auto' ? 'auto' : parseInt(config.TOTAL_SHARDS, 10)
-  const workerPath = join(__dirname, '..', '..', 'dist', 'index.js')
+  const workerPath = join(currentDir, '..', '..', 'dist', 'index.js')
 
   const manager = new ClusterManager(workerPath, {
     totalShards,
