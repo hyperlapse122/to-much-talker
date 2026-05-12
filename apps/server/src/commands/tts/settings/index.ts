@@ -3,6 +3,7 @@ import { encrypt, parseMasterKey } from '@to-much-talker/crypto'
 import { MessageFlags } from 'discord.js'
 import type { ChatInputCommandInteraction } from 'discord.js'
 import type { CommandContext } from '../../context.js'
+import { invalidateTtsRuntimeCache } from '../runtime-cache.js'
 
 interface ApiKeyState {
   readonly hasApiKey: boolean
@@ -56,6 +57,7 @@ async function handleApiKey(
   }
 
   ctx.settingsCache.invalidate(guildId)
+  invalidateTtsRuntimeCache(guildId)
   await ctx.ipcTransport.broadcastInvalidate(guildId)
 
   await interaction.reply({
