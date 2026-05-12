@@ -5,6 +5,7 @@ import { defineConfig } from 'vitest/config'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
+// eslint-disable-next-line no-restricted-syntax
 export default defineConfig({
   plugins: [viteReact()],
   resolve: { alias: { '@': resolve(__dirname, 'src') } },
