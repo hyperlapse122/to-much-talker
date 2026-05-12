@@ -6,6 +6,10 @@ These rules OVERRIDE the user-level AGENTS.md where they conflict.
 > **Scaffold Status**: Initial scaffold complete (May 2026). All 37 implementation tasks executed.
 > Build passes: `yarn turbo run lint typecheck test build` — 19 typecheck tasks, 70+ tests, all green.
 > Branch: `feature/scaffold-monorepo`
+>
+> **Multi-arch Docker**: CI multi-arch pipeline live (May 2026). PR #5 open via `feature/multi-arch-docker`.
+> All 3 images (server, playground, docs) build for linux/amd64 + linux/arm64 via native runners.
+> Pattern: push-by-digest per arch → `docker buildx imagetools create` for manifest assembly.
 
 ## Project Overview
 
