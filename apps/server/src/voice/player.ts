@@ -93,6 +93,11 @@ export class Player extends EventEmitter<PlayerEvents> {
     format: AudioInputFormat,
     playbackTimeoutMs = STREAM_PLAYBACK_TIMEOUT_MS,
   ): Promise<void> {
+    const onInputError = (error: Error): void => {
+      this.#audioPlayer.emit('error', error)
+    }
+    stream.on('error', onInputError)
+
     const audioInfo = createAudioStream(stream, format)
     const resource: AudioResource = createAudioResourceFromBuffer(audioInfo)
 
@@ -106,6 +111,7 @@ export class Player extends EventEmitter<PlayerEvents> {
       this.#audioPlayer.play(resource)
       await this.#waitForCompletion()
     } finally {
+      stream.off('error', onInputError)
       audioInfo.cleanup()
     }
   }
