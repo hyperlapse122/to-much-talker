@@ -27,7 +27,7 @@ function Inspector(): JSX.Element {
       // Placeholder: in real implementation, fetch from API
       setSettings({
         guildId,
-        defaultModel: 'google/gemini-2.5-flash-preview-tts',
+        defaultModel: 'google/gemini-3.1-flash-tts-preview',
         maxChars: 500,
         locale: 'en',
         idleLeaveOnEmpty: true,

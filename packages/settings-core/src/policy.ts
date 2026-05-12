@@ -38,7 +38,7 @@ export const POLICY_TABLE: Record<string, KeyPolicy> = {
     channel: null,
     user: 'preferredModel',
     policy: { kind: 'override-if-in-list', allowedKey: 'allowedModels' },
-    defaultValue: 'google/gemini-2.5-flash-preview-tts',
+    defaultValue: 'google/gemini-3.1-flash-tts-preview',
   },
   default_voice: {
     server: 'defaultVoice',
@@ -87,7 +87,7 @@ export const POLICY_TABLE: Record<string, KeyPolicy> = {
     channel: null,
     user: null,
     policy: { kind: 'server-only' },
-    defaultValue: ['google/gemini-2.5-flash-preview-tts', 'openai/gpt-4o-mini-tts'],
+    defaultValue: ['google/gemini-3.1-flash-tts-preview', 'google/gemini-3.1-flash-tts-preview'],
   },
   permissions_role_id: {
     server: 'permissionsRoleId',

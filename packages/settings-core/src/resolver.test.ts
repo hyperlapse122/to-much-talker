@@ -32,25 +32,25 @@ describe('resolveSettings', () => {
   it('allows model override if in allowed list', () => {
     const resolved = resolveSettings({
       server: {
-        defaultModel: 'google/gemini-2.5-flash-preview-tts',
-        allowedModels: ['google/gemini-2.5-flash-preview-tts', 'openai/gpt-4o-mini-tts'],
+        defaultModel: 'google/gemini-3.1-flash-tts-preview',
+        allowedModels: ['google/gemini-3.1-flash-tts-preview', 'google/gemini-3.1-flash-tts-preview'],
       },
       channel: null,
-      user: { preferredModel: 'openai/gpt-4o-mini-tts' },
+      user: { preferredModel: 'google/gemini-3.1-flash-tts-preview' },
     })
-    expect(resolved.defaultModel).toBe('openai/gpt-4o-mini-tts')
+    expect(resolved.defaultModel).toBe('google/gemini-3.1-flash-tts-preview')
   })
 
   it('rejects model override if NOT in allowed list', () => {
     const resolved = resolveSettings({
       server: {
-        defaultModel: 'google/gemini-2.5-flash-preview-tts',
-        allowedModels: ['google/gemini-2.5-flash-preview-tts'],
+        defaultModel: 'google/gemini-3.1-flash-tts-preview',
+        allowedModels: ['google/gemini-3.1-flash-tts-preview'],
       },
       channel: null,
       user: { preferredModel: 'some/unknown-model' },
     })
-    expect(resolved.defaultModel).toBe('google/gemini-2.5-flash-preview-tts')
+    expect(resolved.defaultModel).toBe('google/gemini-3.1-flash-tts-preview')
   })
 
   it('user locale wins over server locale', () => {
@@ -78,7 +78,7 @@ describe('resolveSettings', () => {
       user: null,
     })
     expect(resolved.maxChars).toBe(500)
-    expect(resolved.defaultModel).toBe('google/gemini-2.5-flash-preview-tts')
+    expect(resolved.defaultModel).toBe('google/gemini-3.1-flash-tts-preview')
     expect(resolved.locale).toBe('en')
     expect(resolved.queueStrategy).toBe('drop-oldest')
     expect(resolved.maxQueueSize).toBe(20)

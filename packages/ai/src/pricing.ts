@@ -6,8 +6,7 @@ export interface ModelPricing {
 // Default pricing estimates for known OpenRouter TTS models
 // These are rough estimates — actual costs from API response headers take precedence
 const DEFAULT_PRICING: Record<string, ModelPricing> = {
-  'google/gemini-2.5-flash-preview-tts': { perChar: 0.5 }, // ~$0.00000050 per char
-  'openai/gpt-4o-mini-tts': { perChar: 1.0 }, // ~$0.000001 per char
+  'google/gemini-3.1-flash-tts-preview': { perChar: 1.0 }, // ~$0.000001 per char
 }
 
 export interface EstimateCostOptions {

@@ -30,7 +30,7 @@ export function makeGuildSettingsSeed(
 ): GuildSettingsSeed {
   return {
     guildId: '123456789012345678',
-    defaultModel: 'google/gemini-2.5-flash-preview-tts',
+    defaultModel: 'google/gemini-3.1-flash-tts-preview',
     defaultVoice: null,
     maxChars: 500,
     locale: 'en',
