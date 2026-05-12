@@ -33,7 +33,10 @@ describe('resolveSettings', () => {
     const resolved = resolveSettings({
       server: {
         defaultModel: 'google/gemini-3.1-flash-tts-preview',
-        allowedModels: ['google/gemini-3.1-flash-tts-preview', 'google/gemini-3.1-flash-tts-preview'],
+        allowedModels: [
+          'google/gemini-3.1-flash-tts-preview',
+          'google/gemini-3.1-flash-tts-preview',
+        ],
       },
       channel: null,
       user: { preferredModel: 'google/gemini-3.1-flash-tts-preview' },

@@ -39,7 +39,10 @@ async function handleApiKey(
 ): Promise<void> {
   const guildId = interaction.guildId
   if (guildId === null) {
-    await interaction.reply({ content: 'Server settings can only be updated in a server.', flags: MessageFlags.Ephemeral })
+    await interaction.reply({
+      content: 'Server settings can only be updated in a server.',
+      flags: MessageFlags.Ephemeral,
+    })
     return
   }
 
@@ -97,7 +100,11 @@ function upsertSqliteApiKey(
     .run()
 
   db.insert(sqlite.settingAuditLog)
-    .values(apiKeyAuditValues(guildId, actorId, { hasApiKey: previous?.hasApiKey !== null && previous?.hasApiKey !== undefined }))
+    .values(
+      apiKeyAuditValues(guildId, actorId, {
+        hasApiKey: previous?.hasApiKey !== null && previous?.hasApiKey !== undefined,
+      }),
+    )
     .run()
 }
 
