@@ -1,13 +1,24 @@
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import viteReact from '@vitejs/plugin-react'
+import type { Plugin } from 'vite'
 import { defineConfig } from 'vitest/config'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
+const contentCollectionsModuleId = '\0test-content-collections'
 
-// eslint-disable-next-line no-restricted-syntax
+const contentCollectionsTestPlugin = {
+  name: 'docs-test-content-collections',
+  resolveId(id: string): string | undefined {
+    return id === 'content-collections' ? contentCollectionsModuleId : undefined
+  },
+  load(id: string): string | undefined {
+    return id === contentCollectionsModuleId ? 'export const allDocs = []' : undefined
+  },
+} satisfies Plugin
+
 export default defineConfig({
-  plugins: [viteReact()],
+  plugins: [contentCollectionsTestPlugin, viteReact()],
   resolve: { alias: { '@': resolve(__dirname, 'src') } },
   test: {
     environment: 'jsdom',
