@@ -1,12 +1,14 @@
 import { Readable, Transform, type TransformCallback } from 'node:stream'
-import { OpusEncoder } from '@discordjs/opus'
-import { FFmpeg } from 'prism-media'
+import opus from '@discordjs/opus'
+import prismMedia from 'prism-media'
 import { logger } from '../logger.js'
 
 const log = logger.child({ component: 'voice/pipeline' })
 const OPUS_RATE = 48_000
 const OPUS_CHANNELS = 2
 const OPUS_FRAME_SIZE = 960
+const OPENROUTER_PCM_RATE = 24_000
+const OPENROUTER_PCM_CHANNELS = 1
 const PCM_BYTES_PER_SAMPLE = 2
 const PCM_FRAME_BYTES = OPUS_FRAME_SIZE * OPUS_CHANNELS * PCM_BYTES_PER_SAMPLE
 
@@ -54,11 +56,10 @@ export function createAudioStream(input: Buffer, inputFormat: AudioInputFormat):
   }
 }
 
-function createFfmpegDecoder(inputFormat: Exclude<AudioInputFormat, 'opus'>): FFmpeg {
-  return new FFmpeg({
+function createFfmpegDecoder(inputFormat: Exclude<AudioInputFormat, 'opus'>): prismMedia.FFmpeg {
+  return new prismMedia.FFmpeg({
     args: [
       ...getInputArgs(inputFormat),
-      '-an',
       '-f',
       's16le',
       '-ar',
@@ -71,14 +72,23 @@ function createFfmpegDecoder(inputFormat: Exclude<AudioInputFormat, 'opus'>): FF
 
 function getInputArgs(inputFormat: Exclude<AudioInputFormat, 'opus'>): string[] {
   if (inputFormat === 'pcm') {
-    return ['-f', 's16le', '-ar', String(OPUS_RATE), '-ac', String(OPUS_CHANNELS), '-i', '-']
+    return [
+      '-f',
+      's16le',
+      '-ar',
+      String(OPENROUTER_PCM_RATE),
+      '-ac',
+      String(OPENROUTER_PCM_CHANNELS),
+      '-i',
+      '-',
+    ]
   }
 
   return ['-f', inputFormat, '-i', '-']
 }
 
 class PcmToOpusTransform extends Transform {
-  readonly #encoder = new OpusEncoder(OPUS_RATE, OPUS_CHANNELS)
+  readonly #encoder = new opus.OpusEncoder(OPUS_RATE, OPUS_CHANNELS)
   #pending = Buffer.alloc(0)
 
   public constructor() {

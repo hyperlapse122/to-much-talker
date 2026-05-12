@@ -2,6 +2,7 @@ import type { Config } from '@to-much-talker/config'
 import { openDb } from '@to-much-talker/db'
 import { NoopIpcTransport, SettingsCache } from '@to-much-talker/settings-core'
 import { createClient } from '../bot/client.js'
+import { attachMessageReader } from '../bot/message-reader.js'
 import { InteractionRouter } from '../bot/router.js'
 import type { CommandContext } from '../commands/context.js'
 import { registerCommandHandlers } from '../commands/index.js'
@@ -49,6 +50,7 @@ export async function runBotWorker(config: Config): Promise<void> {
   // for every interaction and silently reply with "Unknown command".
   registerCommandHandlers(router, ctx)
   router.attachTo(client)
+  attachMessageReader(client, ctx)
 
   await client.login(config.DISCORD_TOKEN)
   log.info('Bot worker logged in to Discord')
