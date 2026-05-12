@@ -5,6 +5,7 @@ import { vi } from 'vitest'
 export interface MockInteractionOptions {
   commandName?: string
   subcommand?: string
+  subcommandGroup?: string | null
   guildId?: string
   channelId?: string
   userId?: string
@@ -20,6 +21,7 @@ export interface MockInteraction {
   readonly user: { id: string; locale: string }
   readonly member: { permissions: { has: (perm: bigint) => boolean } } | null
   readonly options: {
+    getSubcommandGroup: (required?: boolean) => string | null
     getSubcommand: (required?: boolean) => string | null
     getString: (name: string, required?: boolean) => string | null
     getNumber: (name: string, required?: boolean) => number | null
@@ -38,6 +40,7 @@ export function mockChatInputInteraction(opts: MockInteractionOptions = {}): Moc
   const resolved = {
     commandName: opts.commandName ?? 'tts',
     subcommand: opts.subcommand ?? null,
+    subcommandGroup: opts.subcommandGroup ?? null,
     guildId: opts.guildId ?? '123456789012345678',
     channelId: opts.channelId ?? '123456789012345679',
     userId: opts.userId ?? '123456789012345680',
@@ -69,6 +72,7 @@ export function mockChatInputInteraction(opts: MockInteractionOptions = {}): Moc
       },
     },
     options: {
+      getSubcommandGroup: (): string | null => resolved.subcommandGroup,
       getSubcommand: (): string | null => resolved.subcommand,
       getString: (name: string): string | null => {
         const val = resolved.options[name]

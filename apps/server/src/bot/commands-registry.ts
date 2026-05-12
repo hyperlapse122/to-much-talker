@@ -80,6 +80,17 @@ function buildTtsCommand(): SlashCommandBuilder {
       ),
   )
 
+  tts.addSubcommandGroup(
+    new SlashCommandSubcommandGroupBuilder()
+      .setName('user')
+      .setDescription('View and update your TTS preferences')
+      .addSubcommand(
+        new SlashCommandSubcommandBuilder()
+          .setName('model')
+          .setDescription('Choose your preferred TTS model for this server'),
+      ),
+  )
+
   tts.addSubcommand(
     new SlashCommandSubcommandBuilder()
       .setName('setup')

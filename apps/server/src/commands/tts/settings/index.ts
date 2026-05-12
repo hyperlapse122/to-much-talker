@@ -1,9 +1,24 @@
 import { eq, pg, sqlite } from '@to-much-talker/db'
 import { encrypt, parseMasterKey } from '@to-much-talker/crypto'
-import { MessageFlags } from 'discord.js'
-import type { ChatInputCommandInteraction } from 'discord.js'
+import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  MessageFlags,
+  type ButtonInteraction,
+  type ChatInputCommandInteraction,
+} from 'discord.js'
 import type { CommandContext } from '../../context.js'
 import { invalidateTtsRuntimeCache } from '../runtime-cache.js'
+
+const GEMINI_TTS_MODEL = 'google/gemini-3.1-flash-tts-preview'
+const GPT_4O_MINI_TTS_MODEL = 'openai/gpt-4o-mini-tts-2025-12-15'
+const MODEL_CHOICES = {
+  'tts:user-model:gemini': GEMINI_TTS_MODEL,
+  'tts:user-model:gpt-4o-mini': GPT_4O_MINI_TTS_MODEL,
+} as const
+
+export const TTS_MODEL_BUTTON_IDS = Object.keys(MODEL_CHOICES) as Array<keyof typeof MODEL_CHOICES>
 
 interface ApiKeyState {
   readonly hasApiKey: boolean
@@ -31,7 +46,164 @@ export async function handleTtsSettings(
     return
   }
 
+  if (group === 'user' && subcommand === 'model') {
+    await handleUserModel(interaction, ctx)
+    return
+  }
+
   await interaction.reply({ content: 'Unknown settings command.', flags: MessageFlags.Ephemeral })
+}
+
+export async function handleTtsModelButton(
+  interaction: ButtonInteraction,
+  ctx: CommandContext,
+): Promise<void> {
+  const model = MODEL_CHOICES[interaction.customId as keyof typeof MODEL_CHOICES]
+  if (model === undefined) {
+    await interaction.reply({ content: 'Unknown TTS model option.', flags: MessageFlags.Ephemeral })
+    return
+  }
+
+  const guildId = interaction.guildId
+  if (guildId === null) {
+    await interaction.reply({
+      content: 'User TTS settings can only be updated in a server.',
+      flags: MessageFlags.Ephemeral,
+    })
+    return
+  }
+
+  await saveUserModel(ctx, guildId, interaction.user.id, model)
+  await interaction.update({
+    content: `Your preferred TTS model is now ${displayModelName(model)}.`,
+    components: [],
+  })
+}
+
+async function handleUserModel(
+  interaction: ChatInputCommandInteraction,
+  ctx: CommandContext,
+): Promise<void> {
+  void ctx
+  const guildId = interaction.guildId
+  if (guildId === null) {
+    await interaction.reply({
+      content: 'User TTS settings can only be updated in a server.',
+      flags: MessageFlags.Ephemeral,
+    })
+    return
+  }
+
+  await interaction.reply({
+    content: 'Choose your preferred TTS model. You can only select one of these supported options.',
+    components: [buildModelPickerRow()],
+    flags: MessageFlags.Ephemeral,
+  })
+}
+
+function buildModelPickerRow(): ActionRowBuilder<ButtonBuilder> {
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId('tts:user-model:gemini')
+      .setLabel('Gemini 3.1 Flash TTS')
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId('tts:user-model:gpt-4o-mini')
+      .setLabel('GPT-4o Mini TTS')
+      .setStyle(ButtonStyle.Secondary),
+  )
+}
+
+async function saveUserModel(
+  ctx: CommandContext,
+  guildId: string,
+  userId: string,
+  model: string,
+): Promise<void> {
+  if (ctx.db.dialect === 'sqlite') {
+    upsertSqliteUserModel(ctx.db.db, guildId, userId, model)
+  } else {
+    await upsertPgUserModel(ctx.db.db, guildId, userId, model)
+  }
+
+  ctx.settingsCache.invalidate(guildId)
+  await ctx.ipcTransport.broadcastInvalidate(guildId)
+}
+
+function displayModelName(model: string): string {
+  if (model === GPT_4O_MINI_TTS_MODEL) return 'GPT-4o Mini TTS'
+  return 'Gemini 3.1 Flash TTS'
+}
+
+function upsertSqliteUserModel(
+  db: import('@to-much-talker/db').SqliteDb['db'],
+  guildId: string,
+  userId: string,
+  model: string,
+): void {
+  const previous = db
+    .select({ preferredModel: sqlite.userSettings.preferredModel })
+    .from(sqlite.userSettings)
+    .where(eq(sqlite.userSettings.userId, userId))
+    .get()
+
+  db.insert(sqlite.userSettings)
+    .values(userModelValues(userId, model))
+    .onConflictDoUpdate({
+      target: sqlite.userSettings.userId,
+      set: { preferredModel: model, updatedAt: new Date() },
+    })
+    .run()
+
+  db.insert(sqlite.settingAuditLog)
+    .values(userModelAuditValues(guildId, userId, previous?.preferredModel ?? null, model))
+    .run()
+}
+
+async function upsertPgUserModel(
+  db: import('@to-much-talker/db').PgDb['db'],
+  guildId: string,
+  userId: string,
+  model: string,
+): Promise<void> {
+  const rows = await db
+    .select({ preferredModel: pg.userSettings.preferredModel })
+    .from(pg.userSettings)
+    .where(eq(pg.userSettings.userId, userId))
+    .limit(1)
+
+  await db
+    .insert(pg.userSettings)
+    .values(userModelValues(userId, model))
+    .onConflictDoUpdate({
+      target: pg.userSettings.userId,
+      set: { preferredModel: model, updatedAt: new Date() },
+    })
+
+  await db
+    .insert(pg.settingAuditLog)
+    .values(userModelAuditValues(guildId, userId, rows[0]?.preferredModel ?? null, model))
+}
+
+function userModelValues(userId: string, model: string) {
+  return { userId, preferredModel: model, updatedAt: new Date() }
+}
+
+function userModelAuditValues(
+  guildId: string,
+  userId: string,
+  previousModel: string | null,
+  model: string,
+) {
+  return {
+    guildId,
+    userId,
+    scope: 'user',
+    key: 'preferred_model',
+    oldValue: { preferredModel: previousModel },
+    newValue: { preferredModel: model },
+    actorId: userId,
+  }
 }
 
 async function handleApiKey(
