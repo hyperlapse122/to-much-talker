@@ -1,3 +1,3 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-export const Route = createFileRoute('/$' as never)({})
+export const Route = createFileRoute('/$')({})
