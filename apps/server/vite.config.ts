@@ -1,10 +1,11 @@
 import { defineConfig } from 'vite'
 
 // Packages that CANNOT be bundled, loaded via Node's `require` at runtime
-// from `node_modules`. Two reasons something lands here:
+// from `node_modules`. Three reasons something lands here:
 //
 //   1. Ships a native `.node` binary (no JS to bundle).
-//   2. Uses direct `eval(string)` which rolldown rewrites/inlines unsafely
+//   2. Resolves runtime worker/helper files relative to its package folder.
+//   3. Uses direct `eval(string)` which rolldown rewrites/inlines unsafely
 //      and which never minifies cleanly. Keeping the package external
 //      preserves the original `eval()` semantics and the package's own
 //      `require.resolve` / `__dirname` lookups.
@@ -40,10 +41,13 @@ const runtimeExternals = [
   // `node-opus`, `opusscript`, `ffmpeg-static`). Bundling rewrites the
   // require scope and breaks the loader's runtime fallback.
   'prism-media',
-  // (2) Eval: `discord.js` calls `eval(script)` in Client#eval for cluster
+  // (2) Runtime worker: pino/thread-stream resolves `lib/worker.js` relative to
+  // pino's package root at runtime. Bundling makes it look under app dist.
+  'pino',
+  // (3) Eval: `discord.js` calls `eval(script)` in Client#eval for cluster
   // IPC payloads (src/client/Client.js); bundling breaks scope capture.
   'discord.js',
-  // (2) Eval: `discord-hybrid-sharding` evals user scripts in
+  // (3) Eval: `discord-hybrid-sharding` evals user scripts in
   // ClusterManager#broadcastEval and ClusterClient#_eval. Bundling rewrites
   // the surrounding scope and breaks the broadcast contract.
   'discord-hybrid-sharding',

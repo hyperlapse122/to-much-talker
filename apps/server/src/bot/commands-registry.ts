@@ -1,4 +1,10 @@
-import { REST, Routes, SlashCommandBuilder, SlashCommandSubcommandBuilder } from 'discord.js'
+import {
+  REST,
+  Routes,
+  SlashCommandBuilder,
+  SlashCommandSubcommandBuilder,
+  SlashCommandSubcommandGroupBuilder,
+} from 'discord.js'
 import type { Config } from '@to-much-talker/config'
 import { logger } from '../logger.js'
 
@@ -56,10 +62,22 @@ function buildTtsCommand(): SlashCommandBuilder {
       .setDescription('Show help for TTS commands'),
   )
 
-  tts.addSubcommand(
-    new SlashCommandSubcommandBuilder()
+  tts.addSubcommandGroup(
+    new SlashCommandSubcommandGroupBuilder()
       .setName('settings')
-      .setDescription('View and update settings (full option tree lands in Task 21)'),
+      .setDescription('View and update settings')
+      .addSubcommand(
+        new SlashCommandSubcommandBuilder()
+          .setName('api-key')
+          .setDescription('Set the OpenRouter API key for this server')
+          .addStringOption((opt) =>
+            opt
+              .setName('key')
+              .setDescription('OpenRouter API key')
+              .setRequired(true)
+              .setMinLength(1),
+          ),
+      ),
   )
 
   tts.addSubcommand(

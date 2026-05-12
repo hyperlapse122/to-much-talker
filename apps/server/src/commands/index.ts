@@ -26,6 +26,6 @@ export function registerCommandHandlers(router: InteractionRouter, ctx: CommandC
   router.register('tts', 'say', (i) => handleTtsSay(i, ctx))
   router.register('tts', 'stats', (i) => handleTtsStats(i, ctx))
   router.register('tts', 'help', (i) => handleTtsHelp(i, ctx))
-  router.register('tts', 'settings', (i) => handleTtsSettings(i, ctx))
+  router.register('tts', 'api-key', (i) => handleTtsSettings(i, ctx))
   router.register('tts', 'setup', (i) => handleTtsSetup(i, ctx))
 }

@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits } from 'discord.js'
+import { Client, Events, GatewayIntentBits } from 'discord.js'
 import type { Config } from '@to-much-talker/config'
 import { logger } from '../logger.js'
 
@@ -31,7 +31,7 @@ export function createClient(_config: Config): Client {
     ],
   })
 
-  client.once('ready', (c) => {
+  client.once(Events.ClientReady, (c) => {
     log.info({ tag: c.user.tag, guilds: c.guilds.cache.size }, 'Discord client ready')
   })
 
