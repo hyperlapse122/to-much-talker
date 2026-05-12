@@ -6,6 +6,7 @@ Discord TTS bot powered by OpenRouter (Gemini Flash TTS / GPT-4o Mini TTS).
 
 - Node.js 24+
 - Docker (for production)
+- A Discord application and bot token: https://discord.com/developers/applications
 - An OpenRouter API key: https://openrouter.ai/keys
 
 ## Quick Start
@@ -13,28 +14,42 @@ Discord TTS bot powered by OpenRouter (Gemini Flash TTS / GPT-4o Mini TTS).
 ### 1. Generate encryption key
 
 ```bash
-node dist/index.js key gen
+yarn workspace @to-much-talker/server key:gen
 # Copy this value to MASTER_ENC_KEY in your .env
 ```
 
-### 2. Configure environment
+### 2. Create and invite the Discord bot
+
+1. Open the Discord Developer Portal and create an application.
+2. In **Bot**, create or reset the bot token. Copy it to `DISCORD_TOKEN`.
+3. In **Bot > Privileged Gateway Intents**, enable **Message Content Intent**. The bot needs this to read text messages for TTS.
+4. In **OAuth2**, copy the **Client ID** to `DISCORD_CLIENT_ID`.
+5. In **OAuth2 > URL Generator**, select `bot` and `applications.commands` scopes.
+6. Select bot permissions: **View Channels**, **Send Messages**, **Read Message History**, **Connect**, and **Speak**. Use the generated URL to invite the bot to your test server.
+
+Keep the token private. Never commit `.env`.
+
+### 3. Configure environment
 
 ```bash
-cp ../../.env.example .env
-# Fill in DISCORD_TOKEN, DISCORD_CLIENT_ID, MASTER_ENC_KEY, OPENROUTER_API_KEY
+cp .env.example apps/server/.env
+# Fill in DISCORD_TOKEN, DISCORD_CLIENT_ID, MASTER_ENC_KEY, and optional OPENROUTER_API_KEY
 ```
 
-### 3. Run migrations
+Run workspace commands from the repository root. The server scripts load `apps/server/.env` when Yarn executes them in the server workspace.
+
+### 4. Run migrations
 
 ```bash
-node --env-file=.env dist/index.js migrate
+yarn workspace @to-much-talker/server migrate
 ```
 
-### 4. Start the bot
+### 5. Start the bot
 
 ```bash
-yarn dev   # Development (tsx watch)
-yarn start # Production
+yarn workspace @to-much-talker/server dev   # Development (tsx watch)
+yarn workspace @to-much-talker/server build
+yarn workspace @to-much-talker/server start # Production bundle
 ```
 
 ### Docker

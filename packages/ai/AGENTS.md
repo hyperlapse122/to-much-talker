@@ -1,6 +1,6 @@
 # AGENTS — @to-much-talker/ai
 
-This package is the **ONLY** place that imports `openai` SDK or makes direct HTTP calls to OpenRouter.
+This package is the **ONLY** place that imports `@openrouter/sdk` or makes direct HTTP calls to OpenRouter.
 
 ## Key Rules
 
@@ -12,18 +12,18 @@ This package is the **ONLY** place that imports `openai` SDK or makes direct HTT
 
 ## TTS Models (OpenRouter)
 
-- `google/gemini-2.5-flash-preview-tts` — Gemini Flash TTS
-- `openai/gpt-4o-mini-tts` — GPT-4o Mini TTS
-- Both use OpenAI-compatible `/audio/speech` endpoint
+- `google/gemini-3.1-flash-tts-preview` — Gemini Flash TTS
+- Use the OpenRouter SDK TTS API with `responseFormat: 'pcm'` for Gemini TTS playback.
 
-## OpenRouter TTS via openai SDK
+## OpenRouter TTS via OpenRouter SDK
 
 ```typescript
 const client = new OpenRouterClient({ apiKey: 'sk-or-...' })
 const result = await synthesize(client, {
-  model: 'google/gemini-2.5-flash-preview-tts',
+  model: 'google/gemini-3.1-flash-tts-preview',
   input: 'Hello, world!',
-  format: 'mp3',
+  voice: 'Zephyr',
+  format: 'pcm',
 })
 ```
 
