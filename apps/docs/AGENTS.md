@@ -5,8 +5,20 @@ Documentation site for To Much Talker.
 ## Stack
 
 - React + React Router v7
-- Vite + Tailwind v4
+- Vite 8 + Tailwind v4
 - react-markdown + remark-gfm
+
+## Build — Vite 8 (mandatory)
+
+The docs site is bundled with Vite 8. `tsc` is type-check only (`tsc --noEmit`).
+
+- `build` script: `vite build` (static SPA bundle to `dist/`)
+- `typecheck` script: `tsc --noEmit`
+- All workspace packages and every npm dependency listed in `package.json`
+  MUST be inlined into the produced chunks. Nothing should be left as a
+  bare-specifier import at runtime.
+- The Docker runtime image serves the static `dist/` via `serve` — there is no
+  Node module resolution at runtime. The bundle is the contract.
 
 ## Rules
 

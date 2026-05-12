@@ -16,6 +16,19 @@ Dev-only TanStack Start application for TTS sandbox and settings inspection.
 - `@tanstack/react-query` for data fetching
 - `@tanstack/react-form` + zod for forms
 
+## Build — Vite 8 (mandatory)
+
+The playground is bundled with Vite 8. `tsc` is type-check only (`tsc --noEmit`).
+
+- `build` script: `vite build` (client SPA bundle to `dist/`)
+- `typecheck` script: `tsc --noEmit`
+- All workspace packages (`@to-much-talker/shared`, `@to-much-talker/i18n`) and
+  every npm dependency listed in `package.json` MUST be inlined into the
+  produced chunks. Configure `optimizeDeps` / `build.rollupOptions` so nothing
+  workspace-related is left as a bare-specifier import at runtime.
+- The Docker runtime image serves the static `dist/` via `serve` — there is no
+  Node module resolution at runtime. The bundle is the contract.
+
 ## Key Files
 
 - `src/app/__root.tsx` — Root layout with nav

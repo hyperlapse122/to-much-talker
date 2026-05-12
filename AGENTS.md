@@ -81,6 +81,13 @@ changeset publish                     # Publish packages
 6. **NO emoji** in identifiers, strings, or code comments
 7. **NO Sentry, Prometheus, Redis** — out of scope
 8. **NO multi-arch Docker** — linux/amd64 only
+9. **Apps MUST bundle with Vite 8** — every workspace under `apps/` produces its
+   production artifact via `vite build` (not `tsc`). The bundle MUST inline all
+   workspace and npm dependencies; `external` / `ssr.noExternal` MUST be
+   configured so nothing is left for Node to resolve at runtime — except for
+   true native modules that ship `.node` binaries (e.g. `@discordjs/opus`,
+   `better-sqlite3`). `tsc` in `apps/` is for type-checking only (`tsc --noEmit`).
+   See each app's `AGENTS.md` and `vite.config.ts` for the canonical recipe.
 
 ### TypeScript
 

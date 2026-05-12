@@ -46,6 +46,27 @@ src/
 - Voice connections: always clean up on error/disconnect (player.stop() + connection.destroy())
 - All user-facing strings MUST come from `@to-much-talker/i18n` message keys — no hardcoded English
 
+## Build — Vite 8 (mandatory)
+
+The server is bundled with Vite 8 in SSR/library mode. **Do not use `tsc` to emit.**
+
+- `build` script: `vite build` (entry `src/index.ts` → `dist/index.js`)
+- `typecheck` script: `tsc --noEmit` (no emit, type-check only)
+- Output is a single ESM bundle. Workspace packages (`@to-much-talker/*`) and
+  every npm dependency listed in `package.json` MUST be inlined.
+- `ssr.noExternal: true` in `vite.config.ts` — nothing is external by default.
+- The ONLY allowed externals are native modules that ship `.node` binaries:
+  - `@discordjs/opus`
+  - `better-sqlite3`
+  - `bufferutil` / `utf-8-validate` / `zlib-sync` (discord.js optional natives)
+- Adding a new native dependency? Append it to the `external` list in
+  `vite.config.ts` AND document why here.
+- Adding a new pure-JS dependency? Do nothing — it gets bundled automatically.
+
+The bundled `dist/index.js` is the production entrypoint. Native externals are
+resolved at runtime from `node_modules`, which Docker preserves in the runtime
+stage. No source TypeScript or workspace `src/` is loaded at runtime.
+
 ## Logger Discipline
 
 Use child loggers in every module:
