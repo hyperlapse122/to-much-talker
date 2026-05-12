@@ -1,12 +1,11 @@
 import { getVoiceConnection } from '@discordjs/voice'
-import { OpenRouterClient, synthesize } from '@to-much-talker/ai'
-import { decrypt, parseMasterKey } from '@to-much-talker/crypto'
-import { eq, pg, sqlite } from '@to-much-talker/db'
+import { synthesizeStream } from '@to-much-talker/ai'
 import { MessageFlags } from 'discord.js'
 import type { ChatInputCommandInteraction } from 'discord.js'
 import type { Logger } from '../../logger.js'
 import { getOrCreatePlayer } from '../../voice/index.js'
 import type { CommandContext } from '../context.js'
+import { getGuildTtsRuntime } from './runtime-cache.js'
 
 const MAX_CHARS = 500
 const CUSTOM_EMOJI = /<a?:([^:]+):\d+>/g
@@ -22,19 +21,13 @@ interface SanitizeResult {
   readonly truncated: boolean
 }
 
-interface StoredApiKey {
-  readonly encrypted: string
-  readonly iv: string
-  readonly authTag: string
-  readonly version: number
-}
-
 interface QueueTtsParams {
   readonly guildId: string
   readonly channelId: string
   readonly userId: string
   readonly text: string
   readonly source: 'command' | 'message'
+  readonly receivedAtMs?: number
 }
 
 interface QueueTtsResult {
@@ -44,6 +37,40 @@ interface QueueTtsResult {
 }
 
 const playbackQueues = new Map<string, Promise<void>>()
+
+function nowMs(): number {
+  return performance.now()
+}
+
+function playbackTimeoutMs(text: string): number {
+  return 15_000 + text.length * 1_500
+}
+
+function instrumentFirstAudioByte(
+  audio: ReadableStream<Uint8Array>,
+  onFirstByte: () => void,
+): ReadableStream<Uint8Array> {
+  const reader = audio.getReader()
+  let firstChunkSeen = false
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      const result = await reader.read()
+      if (result.done) {
+        controller.close()
+        return
+      }
+
+      if (!firstChunkSeen) {
+        firstChunkSeen = true
+        onFirstByte()
+      }
+      controller.enqueue(result.value)
+    },
+    cancel(reason) {
+      return reader.cancel(reason)
+    },
+  })
+}
 
 /**
  * Strip Discord-specific formatting and limit the message length.
@@ -78,6 +105,7 @@ export async function handleTtsSay(
   interaction: ChatInputCommandInteraction,
   ctx: CommandContext,
 ): Promise<void> {
+  const receivedAtMs = nowMs()
   const guild = interaction.guild
   if (guild === null) {
     await interaction.reply({
@@ -113,6 +141,7 @@ export async function handleTtsSay(
     userId: interaction.user.id,
     text,
     source: 'command',
+    receivedAtMs,
   })
 
   if (!queued.accepted) {
@@ -134,6 +163,7 @@ export async function enqueueTtsText(
   params: QueueTtsParams,
 ): Promise<QueueTtsResult> {
   const log = ctx.logger.child({ component: 'tts/playback-queue' })
+  const receivedAtMs = params.receivedAtMs ?? nowMs()
   const { text, truncated } = sanitizeText(params.text, MAX_CHARS)
   if (text.length === 0) return { accepted: false, reason: 'Message is empty after sanitization.' }
 
@@ -142,19 +172,19 @@ export async function enqueueTtsText(
     return { accepted: false, reason: 'Use `/tts join` before sending TTS messages.' }
   }
 
-  const apiKey = await loadGuildApiKey(params.guildId, ctx)
-  if (apiKey === null) {
+  const runtime = await getGuildTtsRuntime(ctx, params.guildId)
+  if (runtime === null) {
     return {
       accepted: false,
       reason: 'Set an OpenRouter API key first with `/tts settings api-key`.',
     }
   }
 
-  const model = await loadGuildDefaultModel(params.guildId, ctx)
   const previous = playbackQueues.get(params.guildId) ?? Promise.resolve()
+  const queuedAtMs = nowMs()
   const task = previous
     .catch(() => undefined)
-    .then(() => playQueuedText(log, { ...params, text }, apiKey, model))
+    .then(() => playQueuedText(log, { ...params, text, receivedAtMs }, runtime, queuedAtMs))
     .finally(() => {
       if (playbackQueues.get(params.guildId) === task) {
         playbackQueues.delete(params.guildId)
@@ -175,6 +205,7 @@ export async function enqueueTtsText(
       channelId: params.channelId,
       source: params.source,
       chars: text.length,
+      acceptLatencyMs: Math.round(queuedAtMs - receivedAtMs),
     },
     'Queued TTS message',
   )
@@ -185,15 +216,16 @@ export async function enqueueTtsText(
 async function playQueuedText(
   log: Logger,
   params: QueueTtsParams,
-  apiKey: string,
-  model: string,
+  runtime: Awaited<ReturnType<typeof getGuildTtsRuntime>>,
+  queuedAtMs: number,
 ): Promise<void> {
+  if (runtime === null) return
   const connection = getVoiceConnection(params.guildId)
   if (connection === undefined) return
 
-  const client = new OpenRouterClient({ apiKey })
-  const result = await synthesize(client, {
-    model,
+  const synthStartMs = nowMs()
+  const result = await synthesizeStream(runtime.client, {
+    model: runtime.model,
     input: params.text,
     format: TTS_RESPONSE_FORMAT,
   })
@@ -205,113 +237,48 @@ async function playQueuedText(
 
   const player = getOrCreatePlayer(params.guildId)
   player.attachConnection(connection)
+  const playbackStartListener = (): void => {
+    const playbackStartMs = nowMs()
+    log.info(
+      {
+        guildId: params.guildId,
+        channelId: params.channelId,
+        source: params.source,
+        queueWaitMs: Math.round(synthStartMs - queuedAtMs),
+        synthToPlaybackMs: Math.round(playbackStartMs - synthStartMs),
+        totalToPlaybackMs: Math.round(playbackStartMs - (params.receivedAtMs ?? queuedAtMs)),
+      },
+      'TTS playback started',
+    )
+  }
+  player.once('start', playbackStartListener)
+  const audio = instrumentFirstAudioByte(result.value.audio, () => {
+    const firstByteMs = nowMs()
+    log.info(
+      {
+        guildId: params.guildId,
+        channelId: params.channelId,
+        source: params.source,
+        synthFirstByteMs: Math.round(firstByteMs - synthStartMs),
+        totalToFirstByteMs: Math.round(firstByteMs - (params.receivedAtMs ?? queuedAtMs)),
+      },
+      'TTS audio stream first byte',
+    )
+  })
   log.info(
     {
       guildId: params.guildId,
       channelId: params.channelId,
       source: params.source,
-      bytes: result.value.audio.length,
       format: result.value.format,
+      queueWaitMs: Math.round(synthStartMs - queuedAtMs),
     },
-    'Playing TTS message',
+    'Playing streamed TTS message',
   )
-  await player.playFromBuffer(result.value.audio, TTS_RESPONSE_FORMAT)
+  try {
+    await player.playFromWebStream(audio, TTS_RESPONSE_FORMAT, playbackTimeoutMs(params.text))
+  } finally {
+    player.off('start', playbackStartListener)
+  }
   log.info({ guildId: params.guildId, source: params.source }, 'TTS playback complete')
-}
-
-async function loadGuildDefaultModel(guildId: string, ctx: CommandContext): Promise<string> {
-  if (ctx.db.dialect === 'sqlite') {
-    const row = ctx.db.db
-      .select({ defaultModel: sqlite.guildSettings.defaultModel })
-      .from(sqlite.guildSettings)
-      .where(eq(sqlite.guildSettings.guildId, guildId))
-      .get()
-    return row?.defaultModel ?? 'google/gemini-3.1-flash-tts-preview'
-  }
-
-  const rows = await ctx.db.db
-    .select({ defaultModel: pg.guildSettings.defaultModel })
-    .from(pg.guildSettings)
-    .where(eq(pg.guildSettings.guildId, guildId))
-    .limit(1)
-  return rows[0]?.defaultModel ?? 'google/gemini-3.1-flash-tts-preview'
-}
-
-async function loadGuildApiKey(guildId: string, ctx: CommandContext): Promise<string | null> {
-  const stored =
-    ctx.db.dialect === 'sqlite' ? loadSqliteApiKey(guildId, ctx) : await loadPgApiKey(guildId, ctx)
-  if (stored === null) return null
-
-  const masterKey = parseMasterKey(ctx.config.MASTER_ENC_KEY)
-  if (!masterKey.ok) {
-    throw masterKey.error
-  }
-
-  const decrypted = decrypt(
-    {
-      ciphertext: Buffer.from(stored.encrypted, 'base64'),
-      iv: Buffer.from(stored.iv, 'base64'),
-      authTag: Buffer.from(stored.authTag, 'base64'),
-    },
-    masterKey.value,
-  )
-
-  if (!decrypted.ok) {
-    throw decrypted.error
-  }
-
-  return decrypted.value
-}
-
-function loadSqliteApiKey(guildId: string, ctx: CommandContext): StoredApiKey | null {
-  if (ctx.db.dialect !== 'sqlite') return null
-  const row = ctx.db.db
-    .select({
-      encrypted: sqlite.guildSettings.apiKeyEncrypted,
-      iv: sqlite.guildSettings.apiKeyIv,
-      authTag: sqlite.guildSettings.apiKeyAuthTag,
-      version: sqlite.guildSettings.apiKeyVersion,
-    })
-    .from(sqlite.guildSettings)
-    .where(eq(sqlite.guildSettings.guildId, guildId))
-    .get()
-
-  if (
-    row === undefined ||
-    row.encrypted === null ||
-    row.iv === null ||
-    row.authTag === null ||
-    row.version === null
-  ) {
-    return null
-  }
-
-  return { encrypted: row.encrypted, iv: row.iv, authTag: row.authTag, version: row.version }
-}
-
-async function loadPgApiKey(guildId: string, ctx: CommandContext): Promise<StoredApiKey | null> {
-  if (ctx.db.dialect !== 'pg') return null
-  const rows = await ctx.db.db
-    .select({
-      encrypted: pg.guildSettings.apiKeyEncrypted,
-      iv: pg.guildSettings.apiKeyIv,
-      authTag: pg.guildSettings.apiKeyAuthTag,
-      version: pg.guildSettings.apiKeyVersion,
-    })
-    .from(pg.guildSettings)
-    .where(eq(pg.guildSettings.guildId, guildId))
-    .limit(1)
-
-  const row = rows[0]
-  if (
-    row === undefined ||
-    row.encrypted === null ||
-    row.iv === null ||
-    row.authTag === null ||
-    row.version === null
-  ) {
-    return null
-  }
-
-  return { encrypted: row.encrypted, iv: row.iv, authTag: row.authTag, version: row.version }
 }
