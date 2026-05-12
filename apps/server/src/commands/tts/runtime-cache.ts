@@ -2,6 +2,11 @@ import { OpenRouterClient } from '@to-much-talker/ai'
 import { decrypt, parseMasterKey } from '@to-much-talker/crypto'
 import { eq, pg, sqlite } from '@to-much-talker/db'
 import type { CommandContext } from '../context.js'
+import {
+  defaultVoicePresetForModel,
+  findVoicePresetByVoice,
+  type TtsVoicePreset,
+} from './voice-presets.js'
 
 const DEFAULT_MODEL = 'google/gemini-3.1-flash-tts-preview'
 const SUPPORTED_TTS_MODELS = [DEFAULT_MODEL, 'openai/gpt-4o-mini-tts-2025-12-15'] as const
@@ -64,6 +69,19 @@ export async function resolveUserTtsModel(
   return runtime.allowedModels.includes(preferredModel) ? preferredModel : runtime.defaultModel
 }
 
+export async function resolveUserTtsPreset(
+  ctx: CommandContext,
+  userId: string,
+  runtime: TtsRuntimeConfig,
+): Promise<TtsVoicePreset> {
+  const preferredVoice = await loadUserPreferredVoice(userId, ctx)
+  const preferredPreset = preferredVoice === null ? null : findVoicePresetByVoice(preferredVoice)
+  if (preferredPreset !== null) return preferredPreset
+
+  const model = await resolveUserTtsModel(ctx, userId, runtime)
+  return defaultVoicePresetForModel(model)
+}
+
 async function loadGuildModelSettings(
   guildId: string,
   ctx: CommandContext,
@@ -117,6 +135,24 @@ async function loadUserPreferredModel(userId: string, ctx: CommandContext): Prom
     .where(eq(pg.userSettings.userId, userId))
     .limit(1)
   return rows[0]?.preferredModel ?? null
+}
+
+async function loadUserPreferredVoice(userId: string, ctx: CommandContext): Promise<string | null> {
+  if (ctx.db.dialect === 'sqlite') {
+    const row = ctx.db.db
+      .select({ preferredVoice: sqlite.userSettings.preferredVoice })
+      .from(sqlite.userSettings)
+      .where(eq(sqlite.userSettings.userId, userId))
+      .get()
+    return row?.preferredVoice ?? null
+  }
+
+  const rows = await ctx.db.db
+    .select({ preferredVoice: pg.userSettings.preferredVoice })
+    .from(pg.userSettings)
+    .where(eq(pg.userSettings.userId, userId))
+    .limit(1)
+  return rows[0]?.preferredVoice ?? null
 }
 
 async function loadGuildApiKey(guildId: string, ctx: CommandContext): Promise<string | null> {
