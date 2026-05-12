@@ -54,7 +54,10 @@ function playbackTimeoutMs(text: string): number {
   return 15_000 + text.length * 1_500
 }
 
-function ttsRequestForModel(model: string): { readonly format: TtsPlaybackFormat; readonly voice: string } {
+function ttsRequestForModel(model: string): {
+  readonly format: TtsPlaybackFormat
+  readonly voice: string
+} {
   if (model === GPT_4O_MINI_TTS_MODEL) return { format: 'mp3', voice: 'alloy' }
   return { format: 'pcm', voice: 'Zephyr' }
 }
@@ -363,7 +366,13 @@ async function synthesizeForModel(
   model: string,
   input: string,
 ): Promise<
-  | { readonly ok: true; readonly value: { readonly audio: ReadableStream<Uint8Array>; readonly format: TtsPlaybackFormat } }
+  | {
+      readonly ok: true
+      readonly value: {
+        readonly audio: ReadableStream<Uint8Array>
+        readonly format: TtsPlaybackFormat
+      }
+    }
   | { readonly ok: false; readonly error: Error }
 > {
   const request = ttsRequestForModel(model)

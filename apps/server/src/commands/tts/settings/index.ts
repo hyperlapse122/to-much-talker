@@ -18,7 +18,7 @@ const MODEL_CHOICES = {
   'tts:user-model:gpt-4o-mini': GPT_4O_MINI_TTS_MODEL,
 } as const
 
-export const TTS_MODEL_BUTTON_IDS = Object.keys(MODEL_CHOICES) as Array<keyof typeof MODEL_CHOICES>
+export const TTS_MODEL_BUTTON_IDS = Object.keys(MODEL_CHOICES) as (keyof typeof MODEL_CHOICES)[]
 
 interface ApiKeyState {
   readonly hasApiKey: boolean
