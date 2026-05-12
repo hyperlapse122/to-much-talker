@@ -110,10 +110,8 @@ function buildVoicePickerContent(selectedVoice: string | null): string {
   return ['Choose your preferred TTS voice preset:', ...lines].join('\n')
 }
 
-function buildVoicePickerRows(
-  selectedVoice: string | null,
-): Array<ActionRowBuilder<ButtonBuilder>> {
-  const rows: Array<ActionRowBuilder<ButtonBuilder>> = []
+function buildVoicePickerRows(selectedVoice: string | null): ActionRowBuilder<ButtonBuilder>[] {
+  const rows: ActionRowBuilder<ButtonBuilder>[] = []
   for (let index = 0; index < TTS_VOICE_PRESETS.length; index += 5) {
     rows.push(
       new ActionRowBuilder<ButtonBuilder>().addComponents(

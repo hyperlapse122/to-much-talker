@@ -1,5 +1,6 @@
 import { mockChatInputInteraction } from '@to-much-talker/test-utils'
 import type { MockInteraction } from '@to-much-talker/test-utils'
+import { ButtonStyle } from 'discord.js'
 import { describe, expect, it, vi } from 'vitest'
 
 // Mock @discordjs/voice and the local voice/index.js wrapper to prevent
@@ -48,6 +49,10 @@ vi.mock('./voice/index.js', () => ({
   Player: vi.fn(),
 }))
 
+vi.mock('./commands/tts/runtime-cache.js', () => ({
+  invalidateTtsRuntimeCache: vi.fn(),
+}))
+
 const { handleTtsJoin } = await import('./commands/tts/join.js')
 const { handleTtsLeave } = await import('./commands/tts/leave.js')
 const { handleTtsSettings } = await import('./commands/tts/settings/index.js')
@@ -73,7 +78,7 @@ function withoutGuild(interaction: MockInteraction): MockInteraction & { guild: 
  * Minimal CommandContext stub — handlers only touch `logger.child(...)` in
  * the join/leave/skip code paths exercised here.
  */
-function buildCtx(): CommandContext {
+function buildCtx(params: { readonly preferredVoice?: string } = {}): CommandContext {
   const childLogger = {
     info: vi.fn(),
     error: vi.fn(),
@@ -92,10 +97,13 @@ function buildCtx(): CommandContext {
     fatal: vi.fn(),
     child: (): unknown => childLogger,
   }
+  const sqliteSelect = (): unknown => ({
+    from: () => ({ where: () => ({ get: () => params }) }),
+  })
   const ctx = {
     client: null,
     config: null,
-    db: null,
+    db: { dialect: 'sqlite', db: { select: sqliteSelect } },
     settingsCache: null,
     ipcTransport: null,
     logger,
@@ -183,7 +191,7 @@ describe('Bot smoke tests', () => {
     expect(base.reply.mock.calls.length).toBeGreaterThan(0)
   })
 
-  it('/tts user model replies with fixed model buttons', async () => {
+  it('/tts user model replies with voice preset buttons', async () => {
     const base = mockChatInputInteraction({
       commandName: 'tts',
       subcommandGroup: 'user',
@@ -194,11 +202,59 @@ describe('Bot smoke tests', () => {
     await handleTtsSettings(base as never, buildCtx())
 
     const firstCallArg = base.reply.mock.calls[0]?.[0] as
-      | { components?: { components?: { data?: { custom_id?: string } }[] }[] }
+      | {
+          content?: string
+          components?: { components?: { data?: { custom_id?: string; style?: number } }[] }[]
+        }
       | undefined
     const row = firstCallArg?.components?.[0]
     const customIds = row?.components?.map((component) => component.data?.custom_id)
+    const styles = row?.components?.map((component) => component.data?.style)
 
-    expect(customIds).toEqual(['tts:user-model:gemini', 'tts:user-model:gpt-4o-mini'])
+    expect(customIds).toEqual([
+      'tts:user-voice:gemini-zephyr',
+      'tts:user-voice:gemini-puck',
+      'tts:user-voice:gemini-charon',
+      'tts:user-voice:gemini-kore',
+      'tts:user-voice:gemini-fenrir',
+    ])
+    expect(styles).toEqual([
+      ButtonStyle.Secondary,
+      ButtonStyle.Secondary,
+      ButtonStyle.Secondary,
+      ButtonStyle.Secondary,
+      ButtonStyle.Secondary,
+    ])
+    expect(firstCallArg?.content).toContain('Zephyr: Bright, clear, and upbeat.')
+    expect(firstCallArg?.content).toContain('Alloy: Neutral, versatile, and natural.')
+  })
+
+  it('/tts user model marks selected voice as primary', async () => {
+    const base = mockChatInputInteraction({
+      commandName: 'tts',
+      subcommandGroup: 'user',
+      subcommand: 'model',
+      guildId: '123456789012345678',
+    })
+
+    await handleTtsSettings(base as never, buildCtx({ preferredVoice: 'Kore' }))
+
+    const firstCallArg = base.reply.mock.calls[0]?.[0] as
+      | {
+          content?: string
+          components?: { components?: { data?: { custom_id?: string; style?: number } }[] }[]
+        }
+      | undefined
+    const row = firstCallArg?.components?.[0]
+    const styles = row?.components?.map((component) => component.data?.style)
+
+    expect(styles).toEqual([
+      ButtonStyle.Secondary,
+      ButtonStyle.Secondary,
+      ButtonStyle.Secondary,
+      ButtonStyle.Primary,
+      ButtonStyle.Secondary,
+    ])
+    expect(firstCallArg?.content).toContain('Kore [selected]: Warm, smooth, and balanced.')
   })
 })
