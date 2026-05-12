@@ -1,14 +1,24 @@
-import { defineCollection, defineConfig, type AnyCollection } from '@content-collections/core'
+import { defineCollection, defineConfig } from '@content-collections/core'
+import type { StandardSchemaV1 } from '@standard-schema/spec'
 import matter from 'gray-matter'
 import { renderMarkdown } from './src/utils/markdown.js'
 
 interface MarkdownHeading {
-  depth: number
+  level: number
   text: string
   id: string
 }
 
-const docs = defineCollection({
+interface DocsCollection {
+  name: 'docs'
+  directory: 'content'
+  include: '**/*.md'
+  parser: 'frontmatter'
+  typeName: string
+  schema: StandardSchemaV1
+}
+
+const docs: DocsCollection = defineCollection({
   name: 'docs',
   directory: 'content',
   include: '**/*.md',
@@ -48,9 +58,7 @@ const docs = defineCollection({
       headings,
     }
   },
-}) as AnyCollection
-
-const config = defineConfig({ collections: [docs] })
+})
 
 // eslint-disable-next-line no-restricted-syntax
-export default config
+export default defineConfig({ collections: [docs] })
