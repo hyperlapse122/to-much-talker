@@ -1,11 +1,12 @@
 import { getVoiceConnection } from '@discordjs/voice'
+import type { AudioFormat } from '@to-much-talker/ai'
 import { synthesizeStream } from '@to-much-talker/ai'
 import { MessageFlags } from 'discord.js'
 import type { ChatInputCommandInteraction } from 'discord.js'
 import type { Logger } from '../../logger.js'
 import { getOrCreatePlayer } from '../../voice/index.js'
 import type { CommandContext } from '../context.js'
-import { getGuildTtsRuntime } from './runtime-cache.js'
+import { getGuildTtsRuntime, resolveUserTtsModel } from './runtime-cache.js'
 
 const MAX_CHARS = 500
 const CUSTOM_EMOJI = /<a?:([^:]+):\d+>/g
@@ -14,7 +15,8 @@ const USER_MENTION = /<@!?\d+>/g
 const ROLE_MENTION = /<@&\d+>/g
 const CHANNEL_MENTION = /<#\d+>/g
 const FENCED_CODE = /```[\s\S]*?```/g
-const TTS_RESPONSE_FORMAT = 'pcm'
+const GPT_4O_MINI_TTS_MODEL = 'openai/gpt-4o-mini-tts-2025-12-15'
+type TtsPlaybackFormat = Extract<AudioFormat, 'mp3' | 'pcm'>
 
 interface SanitizeResult {
   readonly text: string
@@ -36,6 +38,12 @@ interface QueueTtsResult {
   readonly truncated?: boolean
 }
 
+interface SynthesizedTtsStream {
+  readonly audio: ReadableStream<Uint8Array>
+  readonly format: TtsPlaybackFormat
+  readonly model: string
+}
+
 const playbackQueues = new Map<string, Promise<void>>()
 
 function nowMs(): number {
@@ -44,6 +52,11 @@ function nowMs(): number {
 
 function playbackTimeoutMs(text: string): number {
   return 15_000 + text.length * 1_500
+}
+
+function ttsRequestForModel(model: string): { readonly format: TtsPlaybackFormat; readonly voice: string } {
+  if (model === GPT_4O_MINI_TTS_MODEL) return { format: 'mp3', voice: 'alloy' }
+  return { format: 'pcm', voice: 'Zephyr' }
 }
 
 function instrumentFirstAudioByte(
@@ -184,7 +197,7 @@ export async function enqueueTtsText(
   const queuedAtMs = nowMs()
   const task = previous
     .catch(() => undefined)
-    .then(() => playQueuedText(log, { ...params, text, receivedAtMs }, runtime, queuedAtMs))
+    .then(() => playQueuedText(ctx, log, { ...params, text, receivedAtMs }, runtime, queuedAtMs))
     .finally(() => {
       if (playbackQueues.get(params.guildId) === task) {
         playbackQueues.delete(params.guildId)
@@ -214,6 +227,7 @@ export async function enqueueTtsText(
 }
 
 async function playQueuedText(
+  ctx: CommandContext,
   log: Logger,
   params: QueueTtsParams,
   runtime: Awaited<ReturnType<typeof getGuildTtsRuntime>>,
@@ -224,14 +238,15 @@ async function playQueuedText(
   if (connection === undefined) return
 
   const synthStartMs = nowMs()
-  const result = await synthesizeStream(runtime.client, {
-    model: runtime.model,
+  const model = await resolveUserTtsModel(ctx, params.userId, runtime)
+  const result = await synthesizeWithFallback(log, runtime, {
+    guildId: params.guildId,
+    selectedModel: model,
+    fallbackModel: runtime.defaultModel,
     input: params.text,
-    format: TTS_RESPONSE_FORMAT,
   })
 
-  if (!result.ok) {
-    log.error({ guildId: params.guildId, error: result.error.message }, 'TTS synthesis failed')
+  if (result === null) {
     return
   }
 
@@ -244,6 +259,7 @@ async function playQueuedText(
         guildId: params.guildId,
         channelId: params.channelId,
         source: params.source,
+        model: result.model,
         queueWaitMs: Math.round(synthStartMs - queuedAtMs),
         synthToPlaybackMs: Math.round(playbackStartMs - synthStartMs),
         totalToPlaybackMs: Math.round(playbackStartMs - (params.receivedAtMs ?? queuedAtMs)),
@@ -252,7 +268,7 @@ async function playQueuedText(
     )
   }
   player.once('start', playbackStartListener)
-  const audio = instrumentFirstAudioByte(result.value.audio, () => {
+  const audio = instrumentFirstAudioByte(result.audio, () => {
     const firstByteMs = nowMs()
     log.info(
       {
@@ -270,15 +286,93 @@ async function playQueuedText(
       guildId: params.guildId,
       channelId: params.channelId,
       source: params.source,
-      format: result.value.format,
+      model: result.model,
+      format: result.format,
       queueWaitMs: Math.round(synthStartMs - queuedAtMs),
     },
     'Playing streamed TTS message',
   )
   try {
-    await player.playFromWebStream(audio, TTS_RESPONSE_FORMAT, playbackTimeoutMs(params.text))
+    await player.playFromWebStream(audio, result.format, playbackTimeoutMs(params.text))
   } finally {
     player.off('start', playbackStartListener)
   }
   log.info({ guildId: params.guildId, source: params.source }, 'TTS playback complete')
+}
+
+async function synthesizeWithFallback(
+  log: Logger,
+  runtime: NonNullable<Awaited<ReturnType<typeof getGuildTtsRuntime>>>,
+  params: {
+    readonly guildId: string
+    readonly selectedModel: string
+    readonly fallbackModel: string
+    readonly input: string
+  },
+): Promise<SynthesizedTtsStream | null> {
+  const selected = await synthesizeForModel(runtime, params.selectedModel, params.input)
+  if (selected.ok) return { ...selected.value, model: params.selectedModel }
+
+  const selectedRequest = ttsRequestForModel(params.selectedModel)
+  if (params.selectedModel === params.fallbackModel) {
+    log.error(
+      {
+        guildId: params.guildId,
+        model: params.selectedModel,
+        format: selectedRequest.format,
+        voice: selectedRequest.voice,
+        error: selected.error.message,
+      },
+      'TTS synthesis failed',
+    )
+    return null
+  }
+
+  log.warn(
+    {
+      guildId: params.guildId,
+      model: params.selectedModel,
+      format: selectedRequest.format,
+      voice: selectedRequest.voice,
+      fallbackModel: params.fallbackModel,
+      error: selected.error.message,
+    },
+    'TTS synthesis failed, retrying fallback model',
+  )
+
+  const fallback = await synthesizeForModel(runtime, params.fallbackModel, params.input)
+  if (fallback.ok) return { ...fallback.value, model: params.fallbackModel }
+
+  const fallbackRequest = ttsRequestForModel(params.fallbackModel)
+  log.error(
+    {
+      guildId: params.guildId,
+      model: params.fallbackModel,
+      format: fallbackRequest.format,
+      voice: fallbackRequest.voice,
+      originalModel: params.selectedModel,
+      error: fallback.error.message,
+    },
+    'Fallback TTS synthesis failed',
+  )
+  return null
+}
+
+async function synthesizeForModel(
+  runtime: NonNullable<Awaited<ReturnType<typeof getGuildTtsRuntime>>>,
+  model: string,
+  input: string,
+): Promise<
+  | { readonly ok: true; readonly value: { readonly audio: ReadableStream<Uint8Array>; readonly format: TtsPlaybackFormat } }
+  | { readonly ok: false; readonly error: Error }
+> {
+  const request = ttsRequestForModel(model)
+  const result = await synthesizeStream(runtime.client, {
+    model,
+    input,
+    format: request.format,
+    voice: request.voice,
+  })
+  if (!result.ok) return result
+  return { ok: true, value: { audio: result.value.audio, format: request.format } }
 }
