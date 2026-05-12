@@ -6,7 +6,7 @@ export default defineConfig({
     exclude: ['**/node_modules/**', '**/dist/**', '**/.turbo/**', '**/coverage/**'],
     coverage: {
       provider: 'v8',
-      threshold: {
+      thresholds: {
         branches: 70,
         functions: 70,
         lines: 70,

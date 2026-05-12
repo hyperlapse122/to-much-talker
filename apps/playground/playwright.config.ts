@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
 const isCi = !!process.env['CI']
+const port = parseInt(process.env['PLAYWRIGHT_PORT'] ?? '14773', 10)
 
 // eslint-disable-next-line no-restricted-syntax
 export default defineConfig({
@@ -11,7 +12,7 @@ export default defineConfig({
   ...(isCi ? { workers: 1 } : {}),
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: `http://localhost:${String(port)}`,
     trace: 'on-first-retry',
   },
   projects: [
@@ -21,8 +22,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'yarn workspace @to-much-talker/playground preview --port 5173',
-    url: 'http://localhost:5173',
+    command: `yarn workspace @to-much-talker/playground preview --port ${String(port)}`,
+    url: `http://localhost:${String(port)}`,
     reuseExistingServer: !isCi,
     timeout: 30 * 1000,
   },
