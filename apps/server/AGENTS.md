@@ -55,12 +55,21 @@ The server is bundled with Vite 8 in SSR/library mode. **Do not use `tsc` to emi
 - Output is a single ESM bundle. Workspace packages (`@to-much-talker/*`) and
   every npm dependency listed in `package.json` MUST be inlined.
 - `ssr.noExternal: true` in `vite.config.ts` — nothing is external by default.
-- The ONLY allowed externals are native modules that ship `.node` binaries:
-  - `@discordjs/opus`
-  - `better-sqlite3`
-  - `bufferutil` / `utf-8-validate` / `zlib-sync` (discord.js optional natives)
-- Adding a new native dependency? Append it to the `external` list in
-  `vite.config.ts` AND document why here.
+- A package may stay external only for one of two reasons:
+  - **Ships a `.node` binary** (no JS to bundle), or
+  - **Uses direct `eval(string)`** — bundling rewrites the surrounding
+    scope so the eval'd code no longer sees the variables it expects.
+- Current external list:
+  - `@discordjs/opus` — native (Opus codec `.node`)
+  - `better-sqlite3` — native (SQLite `.node`)
+  - `bufferutil` / `utf-8-validate` / `zlib-sync` — optional ws/discord.js
+    natives, kept external so discord.js's `try { require(...) } catch {}`
+    fallbacks behave identically to a non-bundled install
+  - `discord.js` — calls `eval(script)` in `Client#eval` for cluster IPC
+  - `discord-hybrid-sharding` — evals user scripts in
+    `ClusterManager#broadcastEval` and `ClusterClient#_eval`
+- Adding a new native or eval-using dependency? Append it to the
+  `runtimeExternals` list in `vite.config.ts` AND document why here.
 - Adding a new pure-JS dependency? Do nothing — it gets bundled automatically.
 
 The bundled `dist/index.js` is the production entrypoint. Native externals are

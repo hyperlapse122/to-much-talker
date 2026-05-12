@@ -1,22 +1,36 @@
 import { defineConfig } from 'vite'
 
-// Native modules that ship `.node` binaries and CANNOT be bundled.
-// These are loaded via Node's `require` at runtime from `node_modules`.
+// Packages that CANNOT be bundled, loaded via Node's `require` at runtime
+// from `node_modules`. Two reasons something lands here:
+//
+//   1. Ships a native `.node` binary (no JS to bundle).
+//   2. Uses direct `eval(string)` which rolldown rewrites/inlines unsafely
+//      and which never minifies cleanly. Keeping the package external
+//      preserves the original `eval()` semantics and the package's own
+//      `require.resolve` / `__dirname` lookups.
 //
 // Adding a new entry? Document the reason in `AGENTS.md` and ensure the
 // package is listed in `apps/server/package.json` `dependencies` so the
-// Docker runtime stage installs it (or copies it from the builder).
-const nativeExternals = [
-  // Opus codec for voice — has `prebuild/<abi>/opus.node`
+// Docker runtime stage carries it forward.
+const runtimeExternals = [
+  // (1) Native: Opus codec for voice — has `prebuild/<abi>/opus.node`
   '@discordjs/opus',
-  // SQLite driver — has `build/Release/better_sqlite3.node`
+  // (1) Native: SQLite driver — has `build/Release/better_sqlite3.node`
   'better-sqlite3',
-  // discord.js / ws optional natives. NOT in our dependencies; left external
-  // so discord.js's runtime `try { require(...) } catch {}` fallbacks work
-  // when they happen to be installed and silently skip when they aren't.
+  // (1) Native (optional): discord.js / ws fast-path natives. NOT in our
+  // dependencies; left external so discord.js's runtime
+  // `try { require(...) } catch {}` fallbacks work when they happen to be
+  // installed and silently skip when they aren't.
   'bufferutil',
   'utf-8-validate',
   'zlib-sync',
+  // (2) Eval: `discord.js` calls `eval(script)` in Client#eval for cluster
+  // IPC payloads (src/client/Client.js); bundling breaks scope capture.
+  'discord.js',
+  // (2) Eval: `discord-hybrid-sharding` evals user scripts in
+  // ClusterManager#broadcastEval and ClusterClient#_eval. Bundling rewrites
+  // the surrounding scope and breaks the broadcast contract.
+  'discord-hybrid-sharding',
 ]
 
 // eslint-disable-next-line no-restricted-syntax
@@ -29,7 +43,7 @@ export default defineConfig({
     sourcemap: true,
     minify: false,
     rollupOptions: {
-      external: nativeExternals,
+      external: runtimeExternals,
       output: {
         format: 'esm',
         entryFileNames: 'index.js',
@@ -48,11 +62,11 @@ export default defineConfig({
     },
   },
   // SSR build: bundle EVERYTHING from node_modules and the workspace,
-  // except the explicit native externals above.
+  // except the explicit runtime externals above.
   ssr: {
     target: 'node',
     noExternal: true,
-    external: nativeExternals,
+    external: runtimeExternals,
   },
   // Help Vite's dep-scanner resolve workspace `.ts` exports.
   // (`packages/*/package.json` use `"exports": { ".": "./src/index.ts" }`.)
