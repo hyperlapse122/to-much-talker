@@ -83,7 +83,10 @@ export class InteractionRouter {
       await handler(interaction)
     } catch (error) {
       log.error(
-        { customId: interaction.customId, error: error instanceof Error ? error.message : String(error) },
+        {
+          customId: interaction.customId,
+          error: error instanceof Error ? error.message : String(error),
+        },
         'Button handler error',
       )
 

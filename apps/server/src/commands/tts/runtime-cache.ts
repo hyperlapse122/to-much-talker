@@ -81,7 +81,10 @@ async function loadGuildModelSettings(
   }
 
   const rows = await ctx.db.db
-    .select({ defaultModel: pg.guildSettings.defaultModel, allowedModels: pg.guildSettings.allowedModels })
+    .select({
+      defaultModel: pg.guildSettings.defaultModel,
+      allowedModels: pg.guildSettings.allowedModels,
+    })
     .from(pg.guildSettings)
     .where(eq(pg.guildSettings.guildId, guildId))
     .limit(1)

@@ -194,7 +194,7 @@ describe('Bot smoke tests', () => {
     await handleTtsSettings(base as never, buildCtx())
 
     const firstCallArg = base.reply.mock.calls[0]?.[0] as
-      | { components?: Array<{ components?: Array<{ data?: { custom_id?: string } }> }> }
+      | { components?: { components?: { data?: { custom_id?: string } }[] }[] }
       | undefined
     const row = firstCallArg?.components?.[0]
     const customIds = row?.components?.map((component) => component.data?.custom_id)

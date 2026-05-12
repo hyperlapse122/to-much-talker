@@ -5,7 +5,11 @@ import { handleTtsHelp } from './tts/help.js'
 import { handleTtsJoin } from './tts/join.js'
 import { handleTtsLeave } from './tts/leave.js'
 import { handleTtsSay } from './tts/say.js'
-import { handleTtsModelButton, handleTtsSettings, TTS_MODEL_BUTTON_IDS } from './tts/settings/index.js'
+import {
+  handleTtsModelButton,
+  handleTtsSettings,
+  TTS_MODEL_BUTTON_IDS,
+} from './tts/settings/index.js'
 import { handleTtsSetup } from './tts/setup.js'
 import { handleTtsSkip } from './tts/skip.js'
 import { handleTtsStats } from './tts/stats.js'
