@@ -21,9 +21,8 @@ export async function validateModel(
   modelId: string,
 ): Promise<Result<ValidateModelResult, UpstreamError>> {
   try {
-    const response = await client.openai.models.list()
+    const response = await client.sdk.models.list(undefined, { timeoutMs: client.timeout })
 
-    // Look up the model by id
     const model = response.data.find((m) => m.id === modelId)
 
     if (model === undefined) {
@@ -36,7 +35,7 @@ export async function validateModel(
         exists: true,
         model: {
           id: model.id,
-          name: (model as { name?: string }).name ?? model.id,
+          name: model.name,
         },
       },
     }

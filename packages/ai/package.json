@@ -8,14 +8,21 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "test": "vitest run"
   },
   "dependencies": {
-    "@to-much-talker/shared": "workspace:*",
-    "openai": "^6.37.0"
+    "@openrouter/sdk": "0.12.26",
+    "@to-much-talker/shared": "workspace:*"
+  },
+  "dependenciesMeta": {
+    "@openrouter/sdk": {
+      "built": true
+    }
   },
   "devDependencies": {
-    "@types/node": "^25.7.0",
-    "typescript": "^6.0.3"
+    "@types/node": "25.7.0",
+    "typescript": "6.0.3",
+    "vitest": "4.1.6"
   }
 }

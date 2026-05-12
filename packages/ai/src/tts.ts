@@ -16,7 +16,13 @@ export interface TtsSynthesizeResult {
   readonly format: AudioFormat
 }
 
+type OpenRouterAudioFormat = Extract<AudioFormat, 'mp3' | 'pcm'>
 type UpstreamErrorKind = 'rate_limit' | 'auth' | 'bad_request' | 'server' | 'timeout'
+
+function toOpenRouterAudioFormat(format: AudioFormat): OpenRouterAudioFormat | null {
+  if (format === 'mp3' || format === 'pcm') return format
+  return null
+}
 
 function classifyError(err: unknown): UpstreamErrorKind {
   if (err instanceof Error) {
@@ -34,24 +40,28 @@ export async function synthesize(
   opts: TtsSynthesizeOptions,
 ): Promise<Result<TtsSynthesizeResult, UpstreamError>> {
   const format = opts.format ?? 'mp3'
+  const responseFormat = toOpenRouterAudioFormat(format)
+  if (responseFormat === null) {
+    return {
+      ok: false,
+      error: new UpstreamError(`TTS synthesis failed (bad_request): unsupported format ${format}`),
+    }
+  }
 
   try {
-    const signal = AbortSignal.timeout(client.timeout)
-
-    const response = await client.openai.audio.speech.create(
+    const stream = await client.sdk.tts.createSpeech(
       {
-        model: opts.model,
-        voice:
-          (opts.voice as Parameters<typeof client.openai.audio.speech.create>[0]['voice']) ??
-          'alloy',
-        input: opts.input,
-        response_format: format,
+        speechRequest: {
+          model: opts.model,
+          voice: opts.voice ?? 'Zephyr',
+          input: opts.input,
+          responseFormat,
+        },
       },
-      { signal },
+      { timeoutMs: client.timeout },
     )
 
-    // Read the raw audio bytes
-    const arrayBuffer = await response.arrayBuffer()
+    const arrayBuffer = await new Response(stream).arrayBuffer()
     const audio = Buffer.from(arrayBuffer)
 
     return { ok: true, value: { audio, format } }
