@@ -3,7 +3,13 @@ import { createRouter as createTanStackRouter, type Router } from '@tanstack/rea
 
 import { routeTree } from './routeTree.gen.js'
 
-export function createRouter(): Router<never, 'never', false, RouterHistory, Record<string, unknown>> {
+export function createRouter(): Router<
+  never,
+  'never',
+  false,
+  RouterHistory,
+  Record<string, unknown>
+> {
   const rawBase = import.meta.env.BASE_URL
   const basepath = rawBase.endsWith('/') && rawBase.length > 1 ? rawBase.slice(0, -1) : rawBase
 
