@@ -1,3 +1,5 @@
+import { mkdirSync } from 'node:fs'
+import { dirname } from 'node:path'
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import * as schema from './schema.js'
@@ -15,6 +17,10 @@ export function openSqlite(url: string): SqliteDb {
     : url.startsWith('file:')
       ? url.slice('file:'.length)
       : url
+
+  if (filePath !== ':memory:') {
+    mkdirSync(dirname(filePath), { recursive: true })
+  }
 
   const raw = new Database(filePath === ':memory:' ? ':memory:' : filePath)
   const db = drizzle(raw, { schema })

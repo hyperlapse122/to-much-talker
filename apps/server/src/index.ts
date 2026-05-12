@@ -1,6 +1,5 @@
 import { loadConfigOrExit } from '@to-much-talker/config'
 
-import { runBotWorker, runClusterManager } from './bot/index.js'
 import { parseCli } from './cli.js'
 import { logger } from './logger.js'
 
@@ -38,9 +37,11 @@ async function main(): Promise<void> {
 
   if (isManager) {
     logger.info({ role: 'cluster-manager' }, 'Starting as cluster manager')
+    const { runClusterManager } = await import('./bot/index.js')
     await runClusterManager(config)
   } else {
     logger.info({ role: 'bot-worker', cluster: process.env.CLUSTER }, 'Starting as bot worker')
+    const { runBotWorker } = await import('./bot/index.js')
     await runBotWorker(config)
   }
 }
