@@ -7,7 +7,7 @@
 
 services:
   bot:
-    image: ghcr.io/<owner>/to-much-talker/server:latest
+    image: ghcr.io/hyperlapse122/to-much-talker/server:latest
     env_file: .env
     volumes:
       - bot-data:/app/data

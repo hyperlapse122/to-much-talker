@@ -2,7 +2,7 @@
 
 > Discord TTS bot powered by OpenRouter (Gemini Flash TTS / GPT-4o Mini TTS)
 
-[![CI](https://github.com/<owner>/to-much-talker/actions/workflows/ci.yml/badge.svg)](https://github.com/<owner>/to-much-talker/actions/workflows/ci.yml)
+[![CI](https://github.com/hyperlapse122/to-much-talker/actions/workflows/ci.yml/badge.svg)](https://github.com/hyperlapse122/to-much-talker/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ## Quick Start
