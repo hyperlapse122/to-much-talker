@@ -65,7 +65,8 @@ yarn turbo run lint                   # Lint all packages
 yarn turbo run typecheck              # Type-check all packages
 yarn turbo run test                   # Run all tests
 yarn turbo run dev                    # Start all dev servers (no cache)
-yarn workspace @to-much-talker/server dev  # Start specific workspace
+yarn workspace @to-much-talker/server build  # Build server before any run
+yarn workspace @to-much-talker/server start  # Run built server from dist
 changeset                             # Create a changeset
 changeset version                     # Bump versions
 changeset publish                     # Publish packages
@@ -92,6 +93,9 @@ changeset publish                     # Publish packages
    true native modules that ship `.node` binaries (e.g. `@discordjs/opus`,
    `better-sqlite3`). `tsc` in `apps/` is for type-checking only (`tsc --noEmit`).
    See each app's `AGENTS.md` and `vite.config.ts` for the canonical recipe.
+10. **Server runtime MUST use built output** — run `yarn workspace @to-much-talker/server build`
+    before starting the bot, then run `yarn workspace @to-much-talker/server start`.
+    Do not run server source files directly and do not use `tsx` for server runtime.
 
 ### TypeScript
 

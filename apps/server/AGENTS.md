@@ -40,7 +40,7 @@ src/
 ## Critical Rules
 
 - NEVER log tokens, API keys, or authorization headers — pino redaction is configured
-- NEVER `process.exit()` outside `src/index.ts` main() and CLI actions in `src/cli.ts` / `src/cli/**`
+- NEVER `process.exit()` outside the main entrypoint and CLI action modules
 - NEVER let a Discord interaction time out — always reply() or editReply()
 - Discord rate limits: queue multi-embed responses; never burst
 - Voice connections: always clean up on error/disconnect (player.stop() + connection.destroy())
@@ -50,7 +50,7 @@ src/
 
 The server is bundled with Vite 8 in SSR/library mode. **Do not use `tsc` to emit.**
 
-- `build` script: `vite build` (entry `src/index.ts` → `dist/index.js`)
+- `build` script: `vite build` (bundles the server entrypoint to `dist/index.js`)
 - `typecheck` script: `tsc --noEmit` (no emit, type-check only)
 - Output is a single ESM bundle. Workspace packages (`@to-much-talker/*`) and
   every npm dependency listed in `package.json` MUST be inlined.
@@ -75,6 +75,16 @@ The server is bundled with Vite 8 in SSR/library mode. **Do not use `tsc` to emi
 The bundled `dist/index.js` is the production entrypoint. Native externals are
 resolved at runtime from `node_modules`, which Docker preserves in the runtime
 stage. No source TypeScript or workspace `src/` is loaded at runtime.
+
+## Runtime Discipline
+
+- ALWAYS run `yarn workspace @to-much-talker/server build` before starting or
+  restarting the bot.
+- Start the bot with `yarn workspace @to-much-talker/server start`, which runs
+  `node --env-file=.env dist/index.js start`.
+- NEVER run server source files directly at runtime.
+- NEVER use `tsx` for server runtime or operational commands; build first and
+  run `dist/index.js`.
 
 ## Logger Discipline
 

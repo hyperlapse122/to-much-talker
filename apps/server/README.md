@@ -47,7 +47,8 @@ yarn workspace @to-much-talker/server migrate
 ### 5. Start the bot
 
 ```bash
-yarn workspace @to-much-talker/server dev   # Development (tsx watch)
+yarn workspace @to-much-talker/server build # Build before running
+yarn workspace @to-much-talker/server start # Run built dist/index.js
 yarn workspace @to-much-talker/server build
 yarn workspace @to-much-talker/server start # Production bundle
 ```
