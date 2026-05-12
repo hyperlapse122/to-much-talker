@@ -45,11 +45,18 @@ export class Player extends EventEmitter<PlayerEvents> {
     this.#audioPlayer.on(AudioPlayerStatus.Idle, () => {
       this.#clearTimeout()
 
-      if (this.#state !== 'stopped') {
-        this.#state = 'idle'
-        this.emit('idle')
-        log.debug({ guildId: this.#guildId }, 'Audio player idle')
-      }
+      // ALWAYS emit 'idle' on the AudioPlayer's Idle status — including
+      // stop-driven transitions from stop()/skip()/timeout. `playFromBuffer()`
+      // awaits `#waitForCompletion()` which only resolves on 'idle' or 'error',
+      // so suppressing the emit when state === 'stopped' would hang the
+      // awaiter indefinitely and stall the per-guild playback queue.
+      const wasStopped = this.#state === 'stopped'
+      this.#state = 'idle'
+      this.emit('idle')
+      log.debug(
+        { guildId: this.#guildId, wasStopped },
+        'Audio player idle',
+      )
     })
 
     this.#audioPlayer.on('error', (error) => {
