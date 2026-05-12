@@ -6,6 +6,7 @@ import { attachMessageReader } from '../bot/message-reader.js'
 import { InteractionRouter } from '../bot/router.js'
 import type { CommandContext } from '../commands/context.js'
 import { registerCommandHandlers } from '../commands/index.js'
+import { invalidateTtsRuntimeCache } from '../commands/tts/runtime-cache.js'
 import { logger } from '../logger.js'
 import { HybridShardingIpcTransport } from './ipc.js'
 
@@ -28,6 +29,7 @@ export async function runBotWorker(config: Config): Promise<void> {
   ipcTransport.onInvalidate((guildId) => {
     log.debug({ guildId }, 'Settings cache invalidated via IPC')
     settingsCache.invalidate(guildId)
+    invalidateTtsRuntimeCache(guildId)
   })
 
   const client = createClient(config)
