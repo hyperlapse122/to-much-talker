@@ -10,7 +10,7 @@ export const guildSettings = sqliteTable('guild_settings', {
     .$type<string[]>()
     .notNull()
     .$defaultFn(() => []),
-  defaultModel: text('default_model').notNull().default('google/gemini-2.5-flash-preview-tts'),
+  defaultModel: text('default_model').notNull().default('google/gemini-3.1-flash-tts-preview'),
   defaultVoice: text('default_voice'),
   maxChars: integer('max_chars').notNull().default(500),
   maxPriceCents: integer('max_price_cents'),

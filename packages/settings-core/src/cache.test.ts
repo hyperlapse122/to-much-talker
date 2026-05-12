@@ -6,7 +6,7 @@ function makeSettings(overrides: Partial<ResolvedSettings> = {}): ResolvedSettin
   return {
     maxChars: 500,
     maxPriceCents: null,
-    defaultModel: 'google/gemini-2.5-flash-preview-tts',
+    defaultModel: 'google/gemini-3.1-flash-tts-preview',
     defaultVoice: null,
     queueStrategy: 'drop-oldest',
     maxQueueSize: 20,

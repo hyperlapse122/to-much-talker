@@ -1,8 +1,8 @@
 import type { LocaleCode, QueueStrategyName } from '@to-much-talker/shared'
 import { clampMax, coerceBoolean, intersectAllowlist } from './clamps.js'
 
-const DEFAULT_MODEL = 'google/gemini-2.5-flash-preview-tts'
-const DEFAULT_ALLOWED_MODELS = [DEFAULT_MODEL, 'openai/gpt-4o-mini-tts'] as const
+const DEFAULT_MODEL = 'google/gemini-3.1-flash-tts-preview'
+const DEFAULT_ALLOWED_MODELS = [DEFAULT_MODEL, 'google/gemini-3.1-flash-tts-preview'] as const
 
 export interface SettingsInput {
   readonly server: Record<string, unknown> | null

@@ -3,8 +3,8 @@ import { useState } from 'react'
 import type { JSX } from 'react'
 
 const TTS_MODELS = [
-  { id: 'google/gemini-2.5-flash-preview-tts', label: 'Gemini Flash TTS' },
-  { id: 'openai/gpt-4o-mini-tts', label: 'GPT-4o Mini TTS' },
+  { id: 'google/gemini-3.1-flash-tts-preview', label: 'Gemini Flash TTS' },
+  { id: 'google/gemini-3.1-flash-tts-preview', label: 'GPT-4o Mini TTS' },
 ]
 
 function Sandbox(): JSX.Element {

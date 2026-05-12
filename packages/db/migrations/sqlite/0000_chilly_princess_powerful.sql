@@ -18,7 +18,7 @@ CREATE TABLE `guild_settings` (
 	`api_key_auth_tag` text,
 	`api_key_version` integer,
 	`allowed_models` text NOT NULL,
-	`default_model` text DEFAULT 'google/gemini-2.5-flash-preview-tts' NOT NULL,
+	`default_model` text DEFAULT 'google/gemini-3.1-flash-tts-preview' NOT NULL,
 	`default_voice` text,
 	`max_chars` integer DEFAULT 500 NOT NULL,
 	`max_price_cents` integer,
