@@ -1,2 +1,3 @@
 Created `apps/docs/index.html` with the exact SPA shell requested.
 Verified it uses `<html lang="en" class="dark">`, loads `/src/client.tsx`, and contains no inline script blocks.
+LSP diagnostics: `apps/docs/index.html` clean; `.md` not covered by configured LSP, so notepad verification was done by direct file read.
