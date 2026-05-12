@@ -17,6 +17,7 @@ export function attachMessageReader(client: Client, ctx: CommandContext): void {
 }
 
 async function handleMessage(message: Message, ctx: CommandContext): Promise<void> {
+  const receivedAtMs = performance.now()
   if (message.author.bot) return
   if (message.guildId === null) return
   if (message.content.trim().length === 0) return
@@ -27,6 +28,7 @@ async function handleMessage(message: Message, ctx: CommandContext): Promise<voi
     userId: message.author.id,
     text: message.content,
     source: 'message',
+    receivedAtMs,
   })
 
   if (!result.accepted) return
