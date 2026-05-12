@@ -16,19 +16,19 @@
     "migrate:pg": "drizzle-kit migrate --config=drizzle.pg.config.ts",
     "migrate:gen:sqlite": "drizzle-kit generate --config=drizzle.sqlite.config.ts",
     "migrate:gen:pg": "drizzle-kit generate --config=drizzle.pg.config.ts",
-    "migrate:gen": "yarn migrate:gen:sqlite && yarn migrate:gen:pg"
+    "migrate:gen": "turbo run migrate:gen:sqlite migrate:gen:pg --filter=@to-much-talker/db"
   },
   "dependencies": {
     "@to-much-talker/shared": "workspace:*",
-    "better-sqlite3": "^9.0.0",
-    "drizzle-orm": "^0.39.0",
-    "postgres": "^3.0.0"
+    "better-sqlite3": "^12.9.0",
+    "drizzle-orm": "^0.39.3",
+    "postgres": "^3.4.9"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "*",
-    "@types/node": "^24.0.0",
-    "drizzle-kit": "^0.30.0",
-    "typescript": "^5.5.0",
-    "vitest": "^3.0.0"
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^25.7.0",
+    "drizzle-kit": "^0.30.6",
+    "typescript": "^6.0.3",
+    "vitest": "^3.2.4"
   }
 }

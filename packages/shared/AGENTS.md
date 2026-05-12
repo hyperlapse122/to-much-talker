@@ -4,6 +4,7 @@ This is the **only** package where cross-cutting types, error classes, and brand
 This package contains no I/O — only pure types and helper functions.
 
 ## Rules
+
 - NO I/O in this package — no file reads, no network calls, no DB access
 - NO default exports — named exports only
 - NO business logic — types and pure helper functions only
@@ -13,6 +14,7 @@ This package contains no I/O — only pure types and helper functions.
 - All helpers MUST have explicit return type annotations
 
 ## Branded ID Pattern
+
 ```typescript
 export type GuildId = string & { readonly __brand: 'GuildId' }
 export function asGuildId(s: string): GuildId { ... }
@@ -20,8 +22,9 @@ export const GuildIdSchema = z.string().regex(...).transform(s => s as GuildId)
 ```
 
 ## Result Pattern
+
 ```typescript
 // Never throw across module boundaries
-return ok(value)   // { ok: true, value }
-return err(error)  // { ok: false, error }
+return ok(value) // { ok: true, value }
+return err(error) // { ok: false, error }
 ```

@@ -3,6 +3,7 @@
 This package owns ALL settings resolution semantics. It is the SOLE authority on how user/channel/server settings combine.
 
 ## Core Rules
+
 - NEVER duplicate clamping logic in `apps/server` — always go through `resolveSettings()`
 - NO DB writes here — this package is READ-ONLY; writes happen in slash command handlers
 - NO discord.js imports — this package must be free of Discord-specific dependencies
@@ -10,6 +11,7 @@ This package owns ALL settings resolution semantics. It is the SOLE authority on
 - The `IpcTransport` interface is pluggable — consumers inject their implementation
 
 ## Settings Hierarchy
+
 User ≤ Channel ≤ Server (server settings clamp lower scopes)
 
 ```
@@ -19,6 +21,7 @@ User:    preferred_model: C  → rejected (not in allowed_models)
 ```
 
 ## Cache Usage Pattern
+
 ```typescript
 // In command handlers
 const cached = cache.get({ guildId, channelId, userId })
@@ -32,5 +35,6 @@ await ipc.broadcastInvalidate(guildId) // invalidates all worker caches
 ```
 
 ## IPC Transport Implementations
+
 - `apps/server/src/ipc/hybridShardingTransport.ts` (Task 17) — real IPC
 - `NoopIpcTransport` — for playground and tests

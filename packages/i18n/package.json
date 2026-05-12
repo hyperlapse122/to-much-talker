@@ -8,14 +8,14 @@
   },
   "scripts": {
     "compile": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide",
-    "build": "yarn compile && tsc -b",
+    "build": "tsc -b",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@inlang/paraglide-js": "^1.0.0",
+    "@inlang/paraglide-js": "^2.18.0",
     "@to-much-talker/shared": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.5.0"
+    "typescript": "^6.0.3"
   }
 }

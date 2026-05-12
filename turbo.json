@@ -15,6 +15,27 @@
       "dependsOn": ["^build"],
       "outputs": ["coverage/**"]
     },
+    "compile": {
+      "outputs": ["src/paraglide/**"]
+    },
+    "migrate:gen:sqlite": {
+      "cache": false,
+      "outputs": ["migrations/sqlite/**"]
+    },
+    "migrate:gen:pg": {
+      "cache": false,
+      "outputs": ["migrations/pg/**"]
+    },
+    "@to-much-talker/i18n#build": {
+      "dependsOn": ["^build", "compile"],
+      "outputs": ["dist/**"]
+    },
+    "@to-much-talker/i18n#typecheck": {
+      "dependsOn": ["^build", "compile"]
+    },
+    "@to-much-talker/i18n#lint": {
+      "dependsOn": ["^build", "compile"]
+    },
     "dev": {
       "cache": false,
       "persistent": true
