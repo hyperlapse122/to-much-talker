@@ -6,9 +6,9 @@ import { handleTtsJoin } from './tts/join.js'
 import { handleTtsLeave } from './tts/leave.js'
 import { handleTtsSay } from './tts/say.js'
 import {
-  handleTtsModelButton,
+  TTS_VOICE_BUTTON_IDS,
   handleTtsSettings,
-  TTS_MODEL_BUTTON_IDS,
+  handleTtsVoiceButton,
 } from './tts/settings/index.js'
 import { handleTtsSetup } from './tts/setup.js'
 import { handleTtsSkip } from './tts/skip.js'
@@ -32,8 +32,9 @@ export function registerCommandHandlers(router: InteractionRouter, ctx: CommandC
   router.register('tts', 'help', (i) => handleTtsHelp(i, ctx))
   router.register('tts', 'api-key', (i) => handleTtsSettings(i, ctx))
   router.register('tts', 'model', (i) => handleTtsSettings(i, ctx))
-  for (const buttonId of TTS_MODEL_BUTTON_IDS) {
-    router.registerButton(buttonId, (i) => handleTtsModelButton(i, ctx))
+  router.register('tts', 'voice', (i) => handleTtsSettings(i, ctx))
+  for (const buttonId of TTS_VOICE_BUTTON_IDS) {
+    router.registerButton(buttonId, (i) => handleTtsVoiceButton(i, ctx))
   }
   router.register('tts', 'setup', (i) => handleTtsSetup(i, ctx))
 }

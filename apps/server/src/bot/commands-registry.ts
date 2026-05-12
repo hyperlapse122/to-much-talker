@@ -1,3 +1,4 @@
+import type { Config } from '@to-much-talker/config'
 import {
   REST,
   Routes,
@@ -5,7 +6,6 @@ import {
   SlashCommandSubcommandBuilder,
   SlashCommandSubcommandGroupBuilder,
 } from 'discord.js'
-import type { Config } from '@to-much-talker/config'
 import { logger } from '../logger.js'
 
 const log = logger.child({ component: 'commands-registry' })
@@ -22,6 +22,19 @@ const log = logger.child({ component: 'commands-registry' })
  */
 function buildTtsCommand(): SlashCommandBuilder {
   const tts = new SlashCommandBuilder().setName('tts').setDescription('Text-to-speech commands')
+  const userSettings = new SlashCommandSubcommandGroupBuilder()
+    .setName('user')
+    .setDescription('View and update your TTS preferences')
+    .addSubcommand(
+      new SlashCommandSubcommandBuilder()
+        .setName('model')
+        .setDescription('Choose your preferred TTS voice for this server'),
+    )
+    .addSubcommand(
+      new SlashCommandSubcommandBuilder()
+        .setName('voice')
+        .setDescription('Choose your preferred TTS voice for this server'),
+    )
 
   tts.addSubcommand(
     new SlashCommandSubcommandBuilder()
@@ -80,16 +93,7 @@ function buildTtsCommand(): SlashCommandBuilder {
       ),
   )
 
-  tts.addSubcommandGroup(
-    new SlashCommandSubcommandGroupBuilder()
-      .setName('user')
-      .setDescription('View and update your TTS preferences')
-      .addSubcommand(
-        new SlashCommandSubcommandBuilder()
-          .setName('model')
-          .setDescription('Choose your preferred TTS model for this server'),
-      ),
-  )
+  tts.addSubcommandGroup(userSettings)
 
   tts.addSubcommand(
     new SlashCommandSubcommandBuilder()
@@ -116,10 +120,8 @@ export async function registerCommands(config: Config): Promise<void> {
     await rest.put(Routes.applicationCommands(config.DISCORD_CLIENT_ID), { body: commands })
     log.info({ count: commands.length }, 'Slash commands registered successfully')
   } catch (error) {
-    log.error(
-      { error: error instanceof Error ? error.message : String(error) },
-      'Failed to register commands',
-    )
+    const message = error instanceof Error ? error.message : String(error)
+    log.error({ error: message }, 'Failed to register commands')
     throw error
   }
 }
