@@ -39,8 +39,8 @@ data/
 # Paraglide compiled output
 **/paraglide/
 
-# CI/CD evidence
-.sisyphus/evidence/
+# Sisyphus agent state (plans, notepads, run-continuation, evidence)
+.sisyphus/
 
 # OS
 .DS_Store
