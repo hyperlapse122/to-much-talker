@@ -16,6 +16,11 @@ export interface TtsSynthesizeResult {
   readonly format: AudioFormat
 }
 
+export interface TtsStreamResult {
+  readonly audio: ReadableStream<Uint8Array>
+  readonly format: AudioFormat
+}
+
 type OpenRouterAudioFormat = Extract<AudioFormat, 'mp3' | 'pcm'>
 type UpstreamErrorKind = 'rate_limit' | 'auth' | 'bad_request' | 'server' | 'timeout'
 
@@ -39,6 +44,19 @@ export async function synthesize(
   client: OpenRouterClient,
   opts: TtsSynthesizeOptions,
 ): Promise<Result<TtsSynthesizeResult, UpstreamError>> {
+  const streamed = await synthesizeStream(client, opts)
+  if (!streamed.ok) return streamed
+
+  const arrayBuffer = await new Response(streamed.value.audio).arrayBuffer()
+  const audio = Buffer.from(arrayBuffer)
+
+  return { ok: true, value: { audio, format: streamed.value.format } }
+}
+
+export async function synthesizeStream(
+  client: OpenRouterClient,
+  opts: TtsSynthesizeOptions,
+): Promise<Result<TtsStreamResult, UpstreamError>> {
   const format = opts.format ?? 'mp3'
   const responseFormat = toOpenRouterAudioFormat(format)
   if (responseFormat === null) {
@@ -49,7 +67,7 @@ export async function synthesize(
   }
 
   try {
-    const stream = await client.sdk.tts.createSpeech(
+    const audio = await client.sdk.tts.createSpeech(
       {
         speechRequest: {
           model: opts.model,
@@ -60,9 +78,6 @@ export async function synthesize(
       },
       { timeoutMs: client.timeout },
     )
-
-    const arrayBuffer = await new Response(stream).arrayBuffer()
-    const audio = Buffer.from(arrayBuffer)
 
     return { ok: true, value: { audio, format } }
   } catch (cause) {

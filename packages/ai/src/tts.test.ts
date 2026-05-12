@@ -1,7 +1,7 @@
 import type { CreateAudioSpeechRequest } from '@openrouter/sdk/models/operations'
 import { describe, expect, it } from 'vitest'
 import { OpenRouterClient, type OpenRouterSdk } from './client.js'
-import { synthesize } from './tts.js'
+import { synthesize, synthesizeStream } from './tts.js'
 
 function audioStream(bytes: readonly number[]): ReadableStream<Uint8Array> {
   return new ReadableStream<Uint8Array>({
@@ -51,6 +51,33 @@ describe('synthesize', () => {
         responseFormat: 'pcm',
       },
     })
+  })
+
+  it('returns the OpenRouter audio stream without buffering', async () => {
+    const source = audioStream([4, 5, 6])
+    const sdk: OpenRouterSdk = {
+      tts: {
+        async createSpeech() {
+          return source
+        },
+      },
+      models: {
+        async list() {
+          return { data: [] }
+        },
+      },
+    }
+    const client = new OpenRouterClient({ apiKey: 'test-key', sdk })
+
+    const result = await synthesizeStream(client, {
+      model: 'google/gemini-3.1-flash-tts-preview',
+      input: 'hello',
+      format: 'pcm',
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.ok ? result.value.audio : undefined).toBe(source)
+    expect(result.ok ? result.value.format : undefined).toBe('pcm')
   })
 
   it('rejects formats not supported by OpenRouter TTS', async () => {
