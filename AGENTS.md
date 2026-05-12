@@ -80,7 +80,7 @@ changeset publish                     # Publish packages
 5. **NO Python files** — TypeScript for all code; Bash for OS-level scripts only
 6. **NO emoji** in identifiers, strings, or code comments
 7. **NO Sentry, Prometheus, Redis** — out of scope
-8. **NO multi-arch Docker** — linux/amd64 only
+8. **Multi-arch Docker** — images built for `linux/amd64` + `linux/arm64`; manifest list assembled via `docker buildx imagetools create` in CI
 9. **Apps MUST bundle with Vite 8** — every workspace under `apps/` produces its
    production artifact via `vite build` (not `tsc`). The bundle MUST inline all
    workspace and npm dependencies; `external` / `ssr.noExternal` MUST be
