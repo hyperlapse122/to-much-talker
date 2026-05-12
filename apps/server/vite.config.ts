@@ -24,6 +24,22 @@ const runtimeExternals = [
   'bufferutil',
   'utf-8-validate',
   'zlib-sync',
+  // (1) Native: `@discordjs/voice` pulls in `@snazzah/davey` (DAVE protocol)
+  // which ships platform-specific `.node` binaries via optional deps
+  // (`@snazzah/davey-linux-x64-gnu`, etc). Keeping voice external prevents
+  // rolldown from walking into those native modules at bundle time.
+  '@discordjs/voice',
+  // (1) Native (transitive defense-in-depth): even if some other code path
+  // pulls in davey directly, never try to bundle its native bindings. The
+  // platform-specific sibling packages (`@snazzah/davey-linux-x64-gnu`,
+  // `@snazzah/davey-darwin-arm64`, ...) are resolved by davey's own
+  // `require()` at runtime, so listing the parent is sufficient.
+  '@snazzah/davey',
+  // (1) Native: `prism-media` uses a dynamic `require()` loader to
+  // resolve optional native opus/ffmpeg backends (`@discordjs/opus`,
+  // `node-opus`, `opusscript`, `ffmpeg-static`). Bundling rewrites the
+  // require scope and breaks the loader's runtime fallback.
+  'prism-media',
   // (2) Eval: `discord.js` calls `eval(script)` in Client#eval for cluster
   // IPC payloads (src/client/Client.js); bundling breaks scope capture.
   'discord.js',

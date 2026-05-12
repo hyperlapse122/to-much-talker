@@ -53,10 +53,7 @@ export class Player extends EventEmitter<PlayerEvents> {
       const wasStopped = this.#state === 'stopped'
       this.#state = 'idle'
       this.emit('idle')
-      log.debug(
-        { guildId: this.#guildId, wasStopped },
-        'Audio player idle',
-      )
+      log.debug({ guildId: this.#guildId, wasStopped }, 'Audio player idle')
     })
 
     this.#audioPlayer.on('error', (error) => {
