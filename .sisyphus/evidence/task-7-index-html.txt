@@ -1,0 +1,2 @@
+Created `apps/docs/index.html` with the exact SPA shell requested.
+Verified it uses `<html lang="en" class="dark">`, loads `/src/client.tsx`, and contains no inline script blocks.
