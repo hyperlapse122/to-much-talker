@@ -17,6 +17,7 @@
     "@content-collections/vite": "^0.3.0",
     "@pagefind/default-ui": "^1.5.0",
     "@shikijs/rehype": "^1.29.2",
+    "@tailwindcss/typography": "^0.5.16",
     "@tailwindcss/vite": "^4.3.0",
     "@tanstack/react-router": "^1.169.2",
     "class-variance-authority": "^0.7.1",
