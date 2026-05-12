@@ -1,5 +1,5 @@
-import { eq, pg, sqlite } from '@to-much-talker/db'
 import { encrypt, parseMasterKey } from '@to-much-talker/crypto'
+import { eq, pg, sqlite } from '@to-much-talker/db'
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -10,15 +10,16 @@ import {
 } from 'discord.js'
 import type { CommandContext } from '../../context.js'
 import { invalidateTtsRuntimeCache } from '../runtime-cache.js'
+import {
+  TTS_VOICE_BUTTON_PREFIX,
+  TTS_VOICE_PRESETS,
+  findVoicePresetByButtonId,
+  type TtsVoicePreset,
+} from '../voice-presets.js'
 
-const GEMINI_TTS_MODEL = 'google/gemini-3.1-flash-tts-preview'
-const GPT_4O_MINI_TTS_MODEL = 'openai/gpt-4o-mini-tts-2025-12-15'
-const MODEL_CHOICES = {
-  'tts:user-model:gemini': GEMINI_TTS_MODEL,
-  'tts:user-model:gpt-4o-mini': GPT_4O_MINI_TTS_MODEL,
-} as const
-
-export const TTS_MODEL_BUTTON_IDS = Object.keys(MODEL_CHOICES) as (keyof typeof MODEL_CHOICES)[]
+export const TTS_VOICE_BUTTON_IDS = TTS_VOICE_PRESETS.map(
+  (preset) => `${TTS_VOICE_BUTTON_PREFIX}${preset.id}`,
+)
 
 interface ApiKeyState {
   readonly hasApiKey: boolean
@@ -46,21 +47,21 @@ export async function handleTtsSettings(
     return
   }
 
-  if (group === 'user' && subcommand === 'model') {
-    await handleUserModel(interaction, ctx)
+  if (group === 'user' && (subcommand === 'model' || subcommand === 'voice')) {
+    await handleUserVoice(interaction, ctx)
     return
   }
 
   await interaction.reply({ content: 'Unknown settings command.', flags: MessageFlags.Ephemeral })
 }
 
-export async function handleTtsModelButton(
+export async function handleTtsVoiceButton(
   interaction: ButtonInteraction,
   ctx: CommandContext,
 ): Promise<void> {
-  const model = MODEL_CHOICES[interaction.customId as keyof typeof MODEL_CHOICES]
-  if (model === undefined) {
-    await interaction.reply({ content: 'Unknown TTS model option.', flags: MessageFlags.Ephemeral })
+  const preset = findVoicePresetByButtonId(interaction.customId)
+  if (preset === null) {
+    await interaction.reply({ content: 'Unknown TTS voice option.', flags: MessageFlags.Ephemeral })
     return
   }
 
@@ -73,18 +74,17 @@ export async function handleTtsModelButton(
     return
   }
 
-  await saveUserModel(ctx, guildId, interaction.user.id, model)
+  await saveUserVoice(ctx, guildId, interaction.user.id, preset)
   await interaction.update({
-    content: `Your preferred TTS model is now ${displayModelName(model)}.`,
+    content: `Your preferred TTS voice is now ${preset.label}.`,
     components: [],
   })
 }
 
-async function handleUserModel(
+async function handleUserVoice(
   interaction: ChatInputCommandInteraction,
   ctx: CommandContext,
 ): Promise<void> {
-  void ctx
   const guildId = interaction.guildId
   if (guildId === null) {
     await interaction.reply({
@@ -94,114 +94,190 @@ async function handleUserModel(
     return
   }
 
+  const selectedVoice = await loadUserPreferredVoice(ctx, interaction.user.id)
   await interaction.reply({
-    content: 'Choose your preferred TTS model. You can only select one of these supported options.',
-    components: [buildModelPickerRow()],
+    content: buildVoicePickerContent(selectedVoice),
+    components: buildVoicePickerRows(selectedVoice),
     flags: MessageFlags.Ephemeral,
   })
 }
 
-function buildModelPickerRow(): ActionRowBuilder<ButtonBuilder> {
-  return new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder()
-      .setCustomId('tts:user-model:gemini')
-      .setLabel('Gemini 3.1 Flash TTS')
-      .setStyle(ButtonStyle.Primary),
-    new ButtonBuilder()
-      .setCustomId('tts:user-model:gpt-4o-mini')
-      .setLabel('GPT-4o Mini TTS')
-      .setStyle(ButtonStyle.Secondary),
-  )
+function buildVoicePickerContent(selectedVoice: string | null): string {
+  const lines = TTS_VOICE_PRESETS.map((preset) => {
+    const marker = preset.voice === selectedVoice ? ' [selected]' : ''
+    return `- ${preset.label}${marker}: ${preset.description}`
+  })
+  return ['Choose your preferred TTS voice preset:', ...lines].join('\n')
 }
 
-async function saveUserModel(
+function buildVoicePickerRows(
+  selectedVoice: string | null,
+): Array<ActionRowBuilder<ButtonBuilder>> {
+  const rows: Array<ActionRowBuilder<ButtonBuilder>> = []
+  for (let index = 0; index < TTS_VOICE_PRESETS.length; index += 5) {
+    rows.push(
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        TTS_VOICE_PRESETS.slice(index, index + 5).map((preset) =>
+          new ButtonBuilder()
+            .setCustomId(`${TTS_VOICE_BUTTON_PREFIX}${preset.id}`)
+            .setLabel(preset.label)
+            .setStyle(preset.voice === selectedVoice ? ButtonStyle.Primary : ButtonStyle.Secondary),
+        ),
+      ),
+    )
+  }
+  return rows
+}
+
+async function loadUserPreferredVoice(ctx: CommandContext, userId: string): Promise<string | null> {
+  if (ctx.db.dialect === 'sqlite') {
+    const row = ctx.db.db
+      .select({ preferredVoice: sqlite.userSettings.preferredVoice })
+      .from(sqlite.userSettings)
+      .where(eq(sqlite.userSettings.userId, userId))
+      .get()
+    return row?.preferredVoice ?? null
+  }
+
+  const rows = await ctx.db.db
+    .select({ preferredVoice: pg.userSettings.preferredVoice })
+    .from(pg.userSettings)
+    .where(eq(pg.userSettings.userId, userId))
+    .limit(1)
+  return rows[0]?.preferredVoice ?? null
+}
+
+async function saveUserVoice(
   ctx: CommandContext,
   guildId: string,
   userId: string,
-  model: string,
+  preset: TtsVoicePreset,
 ): Promise<void> {
   if (ctx.db.dialect === 'sqlite') {
-    upsertSqliteUserModel(ctx.db.db, guildId, userId, model)
+    upsertSqliteUserVoice(ctx.db.db, guildId, userId, preset)
   } else {
-    await upsertPgUserModel(ctx.db.db, guildId, userId, model)
+    await upsertPgUserVoice(ctx.db.db, guildId, userId, preset)
   }
 
   ctx.settingsCache.invalidate(guildId)
+  invalidateTtsRuntimeCache(guildId)
   await ctx.ipcTransport.broadcastInvalidate(guildId)
 }
 
-function displayModelName(model: string): string {
-  if (model === GPT_4O_MINI_TTS_MODEL) return 'GPT-4o Mini TTS'
-  return 'Gemini 3.1 Flash TTS'
-}
-
-function upsertSqliteUserModel(
+function upsertSqliteUserVoice(
   db: import('@to-much-talker/db').SqliteDb['db'],
   guildId: string,
   userId: string,
-  model: string,
+  preset: TtsVoicePreset,
 ): void {
   const previous = db
-    .select({ preferredModel: sqlite.userSettings.preferredModel })
+    .select({
+      preferredModel: sqlite.userSettings.preferredModel,
+      preferredVoice: sqlite.userSettings.preferredVoice,
+    })
     .from(sqlite.userSettings)
     .where(eq(sqlite.userSettings.userId, userId))
     .get()
 
   db.insert(sqlite.userSettings)
-    .values(userModelValues(userId, model))
+    .values(userVoiceValues(userId, preset))
     .onConflictDoUpdate({
       target: sqlite.userSettings.userId,
-      set: { preferredModel: model, updatedAt: new Date() },
+      set: { preferredModel: preset.model, preferredVoice: preset.voice, updatedAt: new Date() },
     })
     .run()
 
   db.insert(sqlite.settingAuditLog)
-    .values(userModelAuditValues(guildId, userId, previous?.preferredModel ?? null, model))
+    .values(
+      userVoiceAuditValues(
+        guildId,
+        userId,
+        {
+          model: previous?.preferredModel ?? null,
+          voice: previous?.preferredVoice ?? null,
+        },
+        preset,
+      ),
+    )
     .run()
 }
 
-async function upsertPgUserModel(
+async function upsertPgUserVoice(
   db: import('@to-much-talker/db').PgDb['db'],
   guildId: string,
   userId: string,
-  model: string,
+  preset: TtsVoicePreset,
 ): Promise<void> {
   const rows = await db
-    .select({ preferredModel: pg.userSettings.preferredModel })
+    .select({
+      preferredModel: pg.userSettings.preferredModel,
+      preferredVoice: pg.userSettings.preferredVoice,
+    })
     .from(pg.userSettings)
     .where(eq(pg.userSettings.userId, userId))
     .limit(1)
 
   await db
     .insert(pg.userSettings)
-    .values(userModelValues(userId, model))
+    .values(userVoiceValues(userId, preset))
     .onConflictDoUpdate({
       target: pg.userSettings.userId,
-      set: { preferredModel: model, updatedAt: new Date() },
+      set: { preferredModel: preset.model, preferredVoice: preset.voice, updatedAt: new Date() },
     })
 
   await db
     .insert(pg.settingAuditLog)
-    .values(userModelAuditValues(guildId, userId, rows[0]?.preferredModel ?? null, model))
+    .values(
+      userVoiceAuditValues(
+        guildId,
+        userId,
+        { model: rows[0]?.preferredModel ?? null, voice: rows[0]?.preferredVoice ?? null },
+        preset,
+      ),
+    )
 }
 
-function userModelValues(userId: string, model: string) {
-  return { userId, preferredModel: model, updatedAt: new Date() }
+function userVoiceValues(
+  userId: string,
+  preset: TtsVoicePreset,
+): {
+  readonly userId: string
+  readonly preferredModel: string
+  readonly preferredVoice: string
+  readonly updatedAt: Date
+} {
+  return {
+    userId,
+    preferredModel: preset.model,
+    preferredVoice: preset.voice,
+    updatedAt: new Date(),
+  }
 }
 
-function userModelAuditValues(
+function userVoiceAuditValues(
   guildId: string,
   userId: string,
-  previousModel: string | null,
-  model: string,
-) {
+  previous: { readonly model: string | null; readonly voice: string | null },
+  preset: TtsVoicePreset,
+): {
+  readonly guildId: string
+  readonly userId: string
+  readonly scope: 'user'
+  readonly key: 'preferred_voice'
+  readonly oldValue: {
+    readonly preferredModel: string | null
+    readonly preferredVoice: string | null
+  }
+  readonly newValue: { readonly preferredModel: string; readonly preferredVoice: string }
+  readonly actorId: string
+} {
   return {
     guildId,
     userId,
     scope: 'user',
-    key: 'preferred_model',
-    oldValue: { preferredModel: previousModel },
-    newValue: { preferredModel: model },
+    key: 'preferred_voice',
+    oldValue: { preferredModel: previous.model, preferredVoice: previous.voice },
+    newValue: { preferredModel: preset.model, preferredVoice: preset.voice },
     actorId: userId,
   }
 }
