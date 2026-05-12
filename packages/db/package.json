@@ -1,0 +1,34 @@
+{
+  "name": "@to-much-talker/db",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./sqlite": "./src/sqlite/schema.ts",
+    "./pg": "./src/pg/schema.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -b",
+    "test": "vitest run",
+    "migrate:sqlite": "drizzle-kit migrate --config=drizzle.sqlite.config.ts",
+    "migrate:pg": "drizzle-kit migrate --config=drizzle.pg.config.ts",
+    "migrate:gen:sqlite": "drizzle-kit generate --config=drizzle.sqlite.config.ts",
+    "migrate:gen:pg": "drizzle-kit generate --config=drizzle.pg.config.ts",
+    "migrate:gen": "turbo run migrate:gen:sqlite migrate:gen:pg --filter=@to-much-talker/db"
+  },
+  "dependencies": {
+    "@to-much-talker/shared": "workspace:*",
+    "better-sqlite3": "^12.9.0",
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.9"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^25.7.0",
+    "drizzle-kit": "^0.31.10",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.6"
+  }
+}

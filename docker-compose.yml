@@ -1,0 +1,40 @@
+# To Much Talker - docker-compose example
+# For production use, configure all environment variables via .env file
+# Copy .env.example to .env and fill in required values
+#
+# WARNING: The playground app is dev-only and MUST NOT be exposed publicly.
+# It is intentionally omitted from this compose file. Use server + (optional) postgres only.
+
+services:
+  bot:
+    image: ghcr.io/<owner>/to-much-talker/server:latest
+    env_file: .env
+    volumes:
+      - bot-data:/app/data
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - bot
+
+  # Optional: Postgres database (default is SQLite in ./data/)
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tmt
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: botdb
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U tmt -d botdb']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - postgres
+
+volumes:
+  bot-data:
+  postgres-data:

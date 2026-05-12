@@ -1,0 +1,76 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  e2e-playground:
+    name: Playground E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Install Playwright browsers
+        run: yarn workspace @to-much-talker/playground playwright install chromium --with-deps
+
+      - name: Build playground
+        run: yarn workspace @to-much-talker/playground build
+
+      - name: Run Playwright tests
+        run: yarn workspace @to-much-talker/playground test:e2e
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-playground
+          path: apps/playground/playwright-report/
+          retention-days: 7
+
+  e2e-docs:
+    name: Docs E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Install Playwright browsers
+        run: yarn workspace @to-much-talker/docs playwright install chromium --with-deps
+
+      - name: Build docs
+        run: yarn workspace @to-much-talker/docs build
+
+      - name: Run Playwright tests
+        run: yarn workspace @to-much-talker/docs test:e2e
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-docs
+          path: apps/docs/playwright-report/
+          retention-days: 7

@@ -1,0 +1,7 @@
+export type { ProcessItemFn } from './manager.js'
+export { GuildQueueManager, getOrCreateQueueManager, removeQueueManager } from './manager.js'
+export { getStrategy, registerStrategy } from './registry.js'
+export { dropNewestStrategy } from './strategies/drop-newest.js'
+export { dropOldestStrategy } from './strategies/drop-oldest.js'
+export { interruptStrategy } from './strategies/interrupt.js'
+export type { EnqueueResult, QueuedItem, QueueStrategy } from './types.js'

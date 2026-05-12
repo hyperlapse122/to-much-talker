@@ -1,0 +1,8 @@
+export { OpenRouterClient } from './client.js'
+export type { OpenRouterClientOptions } from './client.js'
+export { synthesize } from './tts.js'
+export type { TtsSynthesizeOptions, TtsSynthesizeResult, AudioFormat } from './tts.js'
+export { validateModel } from './validate.js'
+export type { ModelInfo, ValidateModelResult } from './validate.js'
+export { estimateCost } from './pricing.js'
+export type { ModelPricing, EstimateCostOptions } from './pricing.js'
