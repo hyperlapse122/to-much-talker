@@ -7,7 +7,7 @@
 
 ## Quick Start
 
-See the [docs site](https://to-much-talker.example.com) for the full setup guide.
+See [apps/server/README.md](apps/server/README.md) and the docs app for the full setup guide.
 
 ### Prerequisites
 
@@ -19,5 +19,9 @@ See the [docs site](https://to-much-talker.example.com) for the full setup guide
 
 ```bash
 yarn install
-yarn turbo run dev
+yarn workspace @to-much-talker/server key:gen
+cp .env.example apps/server/.env
+# Fill in apps/server/.env, then run:
+yarn workspace @to-much-talker/server migrate
+yarn workspace @to-much-talker/server dev
 ```
