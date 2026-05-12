@@ -6,6 +6,10 @@ These rules OVERRIDE the user-level AGENTS.md where they conflict.
 > **Scaffold Status**: Initial scaffold complete (May 2026). All 37 implementation tasks executed.
 > Build passes: `yarn turbo run lint typecheck test build` — 19 typecheck tasks, 70+ tests, all green.
 > Branch: `feature/scaffold-monorepo`
+>
+> **Multi-arch Docker**: CI multi-arch pipeline live (May 2026). PR #5 open via `feature/multi-arch-docker`.
+> All 3 images (server, playground, docs) build for linux/amd64 + linux/arm64 via native runners.
+> Pattern: push-by-digest per arch → `docker buildx imagetools create` for manifest assembly.
 
 ## Project Overview
 
@@ -80,7 +84,7 @@ changeset publish                     # Publish packages
 5. **NO Python files** — TypeScript for all code; Bash for OS-level scripts only
 6. **NO emoji** in identifiers, strings, or code comments
 7. **NO Sentry, Prometheus, Redis** — out of scope
-8. **NO multi-arch Docker** — linux/amd64 only
+8. **Multi-arch Docker** — images built for `linux/amd64` + `linux/arm64`; manifest list assembled via `docker buildx imagetools create` in CI
 9. **Apps MUST bundle with Vite 8** — every workspace under `apps/` produces its
    production artifact via `vite build` (not `tsc`). The bundle MUST inline all
    workspace and npm dependencies; `external` / `ssr.noExternal` MUST be

@@ -6,6 +6,11 @@ on:
     tags: ['v*']
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   REGISTRY: ghcr.io
@@ -31,67 +36,52 @@ jobs:
           echo "turbo=$turbo" >> "$GITHUB_OUTPUT"
           echo "Resolved turbo@$turbo"
 
-  build-bot:
-    name: Build Bot Image
+  meta:
+    name: Metadata (${{ matrix.image }})
     runs-on: ubuntu-latest
-    needs: resolve-versions
-    permissions:
-      contents: read
-      packages: write
-
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [server, playground, docs]
+    outputs:
+      tags-server: ${{ steps.set.outputs.tags-server }}
+      tags-playground: ${{ steps.set.outputs.tags-playground }}
+      tags-docs: ${{ steps.set.outputs.tags-docs }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Prune monorepo for @to-much-talker/server
-        run: npx --yes turbo@${{ needs.resolve-versions.outputs.turbo }} prune @to-much-talker/server --docker --out-dir out-server
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GHCR
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Extract metadata
-        id: meta
+        id: docker-meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/server
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.image }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+      - id: set
+        name: Stash per-image tags into a job output
+        run: |
+          tags='${{ steps.docker-meta.outputs.tags }}'
+          printf 'tags-%s<<EOF\n%s\nEOF\n' '${{ matrix.image }}' "$tags" >> "$GITHUB_OUTPUT"
 
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: ./out-server
-          file: containers/server.Dockerfile
-          platforms: linux/amd64
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=server
-          cache-to: type=gha,mode=max,scope=server
-
-  build-playground:
-    name: Build Playground Image
-    runs-on: ubuntu-latest
-    needs: resolve-versions
+  build:
+    name: Build ${{ matrix.image }} (${{ matrix.platform }})
+    needs: [resolve-versions, meta]
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: write
-
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [server, playground, docs]
+        platform: [amd64, arm64]
+        include:
+          - platform: amd64
+            runner: ubuntu-24.04
+          - platform: arm64
+            runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
 
@@ -100,8 +90,11 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Prune monorepo for @to-much-talker/playground
-        run: npx --yes turbo@${{ needs.resolve-versions.outputs.turbo }} prune @to-much-talker/playground --docker --out-dir out-playground
+      - name: Prune monorepo for @to-much-talker/${{ matrix.image }}
+        run: |
+          target="${{ matrix.image }}"
+          npx --yes turbo@${{ needs.resolve-versions.outputs.turbo }} \
+            prune "@to-much-talker/${target}" --docker --out-dir "out-${target}"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -114,68 +107,109 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/playground
-
-      - name: Build and push
+      - name: Build per-arch image (push by digest)
+        id: build
+        if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v6
         with:
-          context: ./out-playground
-          file: containers/playground.Dockerfile
-          platforms: linux/amd64
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=playground
-          cache-to: type=gha,mode=max,scope=playground
+          context: ./out-${{ matrix.image }}
+          file: containers/${{ matrix.image }}.Dockerfile
+          platforms: linux/${{ matrix.platform }}
+          provenance: false
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.image }},name-canonical=true,push-by-digest=true,push=true
+          cache-from: type=gha,scope=${{ matrix.image }}-${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}-${{ matrix.platform }}
 
-  build-docs:
-    name: Build Docs Image
+      - name: Build per-arch image (PR — no push)
+        if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: ./out-${{ matrix.image }}
+          file: containers/${{ matrix.image }}.Dockerfile
+          platforms: linux/${{ matrix.platform }}
+          provenance: false
+          push: false
+          cache-from: type=gha,scope=${{ matrix.image }}-${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}-${{ matrix.platform }}
+
+      - name: Export digest
+        if: github.event_name != 'pull_request'
+        run: |
+          mkdir -p "${{ runner.temp }}/digests/${{ matrix.image }}"
+          digest='${{ steps.build.outputs.digest }}'
+          [ -n "$digest" ] || { echo "Empty digest"; exit 1; }
+          touch "${{ runner.temp }}/digests/${{ matrix.image }}/${digest#sha256:}"
+
+      - name: Upload digest artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.image }}-${{ matrix.platform }}
+          path: ${{ runner.temp }}/digests/${{ matrix.image }}/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    name: Merge manifest (${{ matrix.image }})
+    needs: [meta, build]
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    needs: resolve-versions
     permissions:
       contents: read
       packages: write
-
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [server, playground, docs]
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Download digest artifacts
+        uses: actions/download-artifact@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Prune monorepo for @to-much-talker/docs
-        run: npx --yes turbo@${{ needs.resolve-versions.outputs.turbo }} prune @to-much-talker/docs --docker --out-dir out-docs
+          path: ${{ runner.temp }}/digests
+          pattern: digests-${{ matrix.image }}-*
+          merge-multiple: true
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Login to GHCR
-        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/docs
+      - name: Create multi-arch manifest
+        working-directory: ${{ runner.temp }}/digests
+        env:
+          IMAGE_REF: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.image }}
+          TAGS_SERVER: ${{ needs.meta.outputs.tags-server }}
+          TAGS_PLAYGROUND: ${{ needs.meta.outputs.tags-playground }}
+          TAGS_DOCS: ${{ needs.meta.outputs.tags-docs }}
+        run: |
+          case '${{ matrix.image }}' in
+            server) raw_tags="$TAGS_SERVER" ;;
+            playground) raw_tags="$TAGS_PLAYGROUND" ;;
+            docs) raw_tags="$TAGS_DOCS" ;;
+            *) echo "unknown image" && exit 1 ;;
+          esac
+          tag_args=()
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
+            tag_args+=(-t "$tag")
+          done <<< "$raw_tags"
+          digest_refs=()
+          for f in *; do
+            [ -f "$f" ] || continue
+            digest_refs+=("$IMAGE_REF@sha256:$f")
+          done
+          [ "${#tag_args[@]}" -gt 0 ] || { echo "no tags resolved"; exit 1; }
+          [ "${#digest_refs[@]}" -gt 0 ] || { echo "no digests found"; exit 1; }
+          docker buildx imagetools create "${tag_args[@]}" "${digest_refs[@]}"
 
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: ./out-docs
-          file: containers/docs.Dockerfile
-          platforms: linux/amd64
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=docs
-          cache-to: type=gha,mode=max,scope=docs
+      - name: Inspect resulting manifest
+        run: |
+          for tag in $(printf '%s\n' "${{ needs.meta.outputs.tags-server }}${{ needs.meta.outputs.tags-playground }}${{ needs.meta.outputs.tags-docs }}" | head -1); do
+            [ -n "$tag" ] || continue
+            docker buildx imagetools inspect "$tag" || true
+          done
