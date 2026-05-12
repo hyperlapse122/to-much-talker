@@ -87,7 +87,10 @@ export const POLICY_TABLE: Record<string, KeyPolicy> = {
     channel: null,
     user: null,
     policy: { kind: 'server-only' },
-    defaultValue: ['google/gemini-3.1-flash-tts-preview', 'google/gemini-3.1-flash-tts-preview'],
+    defaultValue: [
+      'google/gemini-3.1-flash-tts-preview',
+      'openai/gpt-4o-mini-tts-2025-12-15',
+    ],
   },
   permissions_role_id: {
     server: 'permissionsRoleId',

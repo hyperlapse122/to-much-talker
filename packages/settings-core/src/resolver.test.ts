@@ -35,7 +35,7 @@ describe('resolveSettings', () => {
         defaultModel: 'google/gemini-3.1-flash-tts-preview',
         allowedModels: [
           'google/gemini-3.1-flash-tts-preview',
-          'google/gemini-3.1-flash-tts-preview',
+          'openai/gpt-4o-mini-tts-2025-12-15',
         ],
       },
       channel: null,
@@ -88,6 +88,10 @@ describe('resolveSettings', () => {
     expect(resolved.idleLeaveOnEmpty).toBe(true)
     expect(resolved.defaultVoice).toBeNull()
     expect(resolved.maxPriceCents).toBeNull()
+    expect(resolved.allowedModels).toEqual([
+      'google/gemini-3.1-flash-tts-preview',
+      'openai/gpt-4o-mini-tts-2025-12-15',
+    ])
   })
 
   it('user preferredVoice wins over server defaultVoice', () => {
