@@ -1,12 +1,16 @@
 import { getVoiceConnection } from '@discordjs/voice'
-import type { AudioFormat } from '@to-much-talker/ai'
 import { synthesizeStream } from '@to-much-talker/ai'
 import { MessageFlags } from 'discord.js'
 import type { ChatInputCommandInteraction } from 'discord.js'
 import type { Logger } from '../../logger.js'
 import { getOrCreatePlayer } from '../../voice/index.js'
 import type { CommandContext } from '../context.js'
-import { getGuildTtsRuntime, resolveUserTtsModel } from './runtime-cache.js'
+import { getGuildTtsRuntime, resolveUserTtsPreset } from './runtime-cache.js'
+import {
+  defaultVoicePresetForModel,
+  type TtsPlaybackFormat,
+  type TtsVoicePreset,
+} from './voice-presets.js'
 
 const MAX_CHARS = 500
 const CUSTOM_EMOJI = /<a?:([^:]+):\d+>/g
@@ -15,8 +19,6 @@ const USER_MENTION = /<@!?\d+>/g
 const ROLE_MENTION = /<@&\d+>/g
 const CHANNEL_MENTION = /<#\d+>/g
 const FENCED_CODE = /```[\s\S]*?```/g
-const GPT_4O_MINI_TTS_MODEL = 'openai/gpt-4o-mini-tts-2025-12-15'
-type TtsPlaybackFormat = Extract<AudioFormat, 'mp3' | 'pcm'>
 
 interface SanitizeResult {
   readonly text: string
@@ -54,12 +56,11 @@ function playbackTimeoutMs(text: string): number {
   return 15_000 + text.length * 1_500
 }
 
-function ttsRequestForModel(model: string): {
+function ttsRequestForPreset(preset: TtsVoicePreset): {
   readonly format: TtsPlaybackFormat
   readonly voice: string
 } {
-  if (model === GPT_4O_MINI_TTS_MODEL) return { format: 'mp3', voice: 'alloy' }
-  return { format: 'pcm', voice: 'Zephyr' }
+  return { format: preset.format, voice: preset.voice }
 }
 
 function instrumentFirstAudioByte(
@@ -241,10 +242,10 @@ async function playQueuedText(
   if (connection === undefined) return
 
   const synthStartMs = nowMs()
-  const model = await resolveUserTtsModel(ctx, params.userId, runtime)
+  const preset = await resolveUserTtsPreset(ctx, params.userId, runtime)
   const result = await synthesizeWithFallback(log, runtime, {
     guildId: params.guildId,
-    selectedModel: model,
+    selectedPreset: preset,
     fallbackModel: runtime.defaultModel,
     input: params.text,
   })
@@ -308,20 +309,20 @@ async function synthesizeWithFallback(
   runtime: NonNullable<Awaited<ReturnType<typeof getGuildTtsRuntime>>>,
   params: {
     readonly guildId: string
-    readonly selectedModel: string
+    readonly selectedPreset: TtsVoicePreset
     readonly fallbackModel: string
     readonly input: string
   },
 ): Promise<SynthesizedTtsStream | null> {
-  const selected = await synthesizeForModel(runtime, params.selectedModel, params.input)
-  if (selected.ok) return { ...selected.value, model: params.selectedModel }
+  const selected = await synthesizeForPreset(runtime, params.selectedPreset, params.input)
+  if (selected.ok) return { ...selected.value, model: params.selectedPreset.model }
 
-  const selectedRequest = ttsRequestForModel(params.selectedModel)
-  if (params.selectedModel === params.fallbackModel) {
+  const selectedRequest = ttsRequestForPreset(params.selectedPreset)
+  if (params.selectedPreset.model === params.fallbackModel) {
     log.error(
       {
         guildId: params.guildId,
-        model: params.selectedModel,
+        model: params.selectedPreset.model,
         format: selectedRequest.format,
         voice: selectedRequest.voice,
         error: selected.error.message,
@@ -334,7 +335,7 @@ async function synthesizeWithFallback(
   log.warn(
     {
       guildId: params.guildId,
-      model: params.selectedModel,
+      model: params.selectedPreset.model,
       format: selectedRequest.format,
       voice: selectedRequest.voice,
       fallbackModel: params.fallbackModel,
@@ -343,17 +344,18 @@ async function synthesizeWithFallback(
     'TTS synthesis failed, retrying fallback model',
   )
 
-  const fallback = await synthesizeForModel(runtime, params.fallbackModel, params.input)
+  const fallbackPreset = defaultVoicePresetForModel(params.fallbackModel)
+  const fallback = await synthesizeForPreset(runtime, fallbackPreset, params.input)
   if (fallback.ok) return { ...fallback.value, model: params.fallbackModel }
 
-  const fallbackRequest = ttsRequestForModel(params.fallbackModel)
+  const fallbackRequest = ttsRequestForPreset(fallbackPreset)
   log.error(
     {
       guildId: params.guildId,
       model: params.fallbackModel,
       format: fallbackRequest.format,
       voice: fallbackRequest.voice,
-      originalModel: params.selectedModel,
+      originalModel: params.selectedPreset.model,
       error: fallback.error.message,
     },
     'Fallback TTS synthesis failed',
@@ -361,9 +363,9 @@ async function synthesizeWithFallback(
   return null
 }
 
-async function synthesizeForModel(
+async function synthesizeForPreset(
   runtime: NonNullable<Awaited<ReturnType<typeof getGuildTtsRuntime>>>,
-  model: string,
+  preset: TtsVoicePreset,
   input: string,
 ): Promise<
   | {
@@ -375,9 +377,9 @@ async function synthesizeForModel(
     }
   | { readonly ok: false; readonly error: Error }
 > {
-  const request = ttsRequestForModel(model)
+  const request = ttsRequestForPreset(preset)
   const result = await synthesizeStream(runtime.client, {
-    model,
+    model: preset.model,
     input,
     format: request.format,
     voice: request.voice,
