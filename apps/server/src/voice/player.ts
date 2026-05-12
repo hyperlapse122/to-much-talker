@@ -1,4 +1,5 @@
 import { EventEmitter } from 'node:events'
+import { Readable } from 'node:stream'
 import {
   AudioPlayerStatus,
   createAudioPlayer,
@@ -15,6 +16,7 @@ import { createAudioResourceFromBuffer } from './resource.js'
 const log = logger.child({ component: 'voice/player' })
 const PLAYBACK_GRACE_MS = 10_000
 const ESTIMATED_BYTES_PER_SECOND = 16_000
+const STREAM_PLAYBACK_TIMEOUT_MS = 120_000
 
 export type PlayerState = 'idle' | 'playing' | 'paused' | 'stopped'
 
@@ -74,17 +76,31 @@ export class Player extends EventEmitter<PlayerEvents> {
   }
 
   public async playFromBuffer(buf: Buffer, format: AudioInputFormat): Promise<void> {
-    const audioInfo = createAudioStream(buf, format)
+    const playbackTimeoutMs = PLAYBACK_GRACE_MS + (buf.length / ESTIMATED_BYTES_PER_SECOND) * 1_000
+    await this.playFromReadable(Readable.from([buf]), format, playbackTimeoutMs)
+  }
+
+  public async playFromWebStream(
+    stream: ReadableStream<Uint8Array>,
+    format: AudioInputFormat,
+    playbackTimeoutMs = STREAM_PLAYBACK_TIMEOUT_MS,
+  ): Promise<void> {
+    await this.playFromReadable(Readable.from(readWebStream(stream)), format, playbackTimeoutMs)
+  }
+
+  public async playFromReadable(
+    stream: Readable,
+    format: AudioInputFormat,
+    playbackTimeoutMs = STREAM_PLAYBACK_TIMEOUT_MS,
+  ): Promise<void> {
+    const audioInfo = createAudioStream(stream, format)
     const resource: AudioResource = createAudioResourceFromBuffer(audioInfo)
 
     this.#clearTimeout()
-    this.#playbackTimeout = setTimeout(
-      () => {
-        log.warn({ guildId: this.#guildId }, 'Playback timeout exceeded, stopping')
-        this.stop()
-      },
-      PLAYBACK_GRACE_MS + (buf.length / ESTIMATED_BYTES_PER_SECOND) * 1_000,
-    )
+    this.#playbackTimeout = setTimeout(() => {
+      log.warn({ guildId: this.#guildId }, 'Playback timeout exceeded, stopping')
+      this.stop()
+    }, playbackTimeoutMs)
 
     try {
       this.#audioPlayer.play(resource)
@@ -155,6 +171,19 @@ export class Player extends EventEmitter<PlayerEvents> {
       this.once('idle', onIdle)
       this.once('error', onError)
     })
+  }
+}
+
+async function* readWebStream(stream: ReadableStream<Uint8Array>): AsyncGenerator<Uint8Array> {
+  const reader = stream.getReader()
+  try {
+    while (true) {
+      const result = await reader.read()
+      if (result.done) return
+      yield result.value
+    }
+  } finally {
+    reader.releaseLock()
   }
 }
 

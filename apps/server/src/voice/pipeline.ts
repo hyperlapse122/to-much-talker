@@ -24,15 +24,22 @@ export function audioBufferToStream(input: Buffer): Readable {
   return Readable.from([input])
 }
 
-export function audioBytesToOpus(input: Buffer, inputFormat: AudioInputFormat): Readable {
+function audioInputToStream(input: Buffer | Readable): Readable {
+  return Buffer.isBuffer(input) ? audioBufferToStream(input) : input
+}
+
+export function audioBytesToOpus(
+  input: Buffer | Readable,
+  inputFormat: AudioInputFormat,
+): Readable {
   if (inputFormat === 'opus') {
-    return audioBufferToStream(input)
+    return audioInputToStream(input)
   }
 
   const ffmpeg = createFfmpegDecoder(inputFormat)
   const encoder = new PcmToOpusTransform()
 
-  audioBufferToStream(input).pipe(ffmpeg).pipe(encoder)
+  audioInputToStream(input).pipe(ffmpeg).pipe(encoder)
 
   ffmpeg.on('error', (error) => {
     log.error({ error }, 'FFmpeg audio decode failed')
@@ -42,8 +49,14 @@ export function audioBytesToOpus(input: Buffer, inputFormat: AudioInputFormat): 
   return encoder
 }
 
-export function createAudioStream(input: Buffer, inputFormat: AudioInputFormat): AudioStreamInfo {
-  log.debug({ format: inputFormat, bytes: input.length }, 'Creating audio stream')
+export function createAudioStream(
+  input: Buffer | Readable,
+  inputFormat: AudioInputFormat,
+): AudioStreamInfo {
+  log.debug(
+    { format: inputFormat, bytes: Buffer.isBuffer(input) ? input.length : undefined },
+    'Creating audio stream',
+  )
 
   const stream = audioBytesToOpus(input, inputFormat)
 
