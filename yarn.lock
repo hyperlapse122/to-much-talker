@@ -716,7 +716,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@discordjs/opus@npm:^0.10.0":
+"@discordjs/opus@npm:0.10.0":
   version: 0.10.0
   resolution: "@discordjs/opus@npm:0.10.0"
   dependencies:
@@ -752,7 +752,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@discordjs/voice@npm:^0.19.2":
+"@discordjs/voice@npm:0.19.2":
   version: 0.19.2
   resolution: "@discordjs/voice@npm:0.19.2"
   dependencies:
@@ -1518,6 +1518,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@openrouter/sdk@npm:0.12.26":
+  version: 0.12.26
+  resolution: "@openrouter/sdk@npm:0.12.26"
+  dependencies:
+    zod: "npm:^3.25.0 || ^4.0.0"
+  checksum: 10c0/962f0a12e5551992b941bf045e7176e340e391c98364dd5cda69d455491a4c2fb047d0d87eb857dd6d89235310b365687319de4720f31a37ea466de6da6be129
+  languageName: node
+  linkType: hard
+
 "@oxc-project/types@npm:=0.129.0":
   version: 0.129.0
   resolution: "@oxc-project/types@npm:0.129.0"
@@ -2207,10 +2216,14 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@to-much-talker/ai@workspace:packages/ai"
   dependencies:
+    "@openrouter/sdk": "npm:0.12.26"
     "@to-much-talker/shared": "workspace:*"
-    "@types/node": "npm:^25.7.0"
-    openai: "npm:^6.37.0"
-    typescript: "npm:^6.0.3"
+    "@types/node": "npm:25.7.0"
+    typescript: "npm:6.0.3"
+    vitest: "npm:4.1.6"
+  dependenciesMeta:
+    "@openrouter/sdk":
+      built: true
   languageName: unknown
   linkType: soft
 
@@ -2314,8 +2327,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@to-much-talker/server@workspace:apps/server"
   dependencies:
-    "@discordjs/opus": "npm:^0.10.0"
-    "@discordjs/voice": "npm:^0.19.2"
+    "@discordjs/opus": "npm:0.10.0"
+    "@discordjs/voice": "npm:0.19.2"
     "@to-much-talker/ai": "workspace:*"
     "@to-much-talker/config": "workspace:*"
     "@to-much-talker/crypto": "workspace:*"
@@ -2324,17 +2337,17 @@ __metadata:
     "@to-much-talker/settings-core": "workspace:*"
     "@to-much-talker/shared": "workspace:*"
     "@to-much-talker/test-utils": "workspace:*"
-    "@types/node": "npm:^25.7.0"
-    commander: "npm:^14.0.3"
-    discord-hybrid-sharding: "npm:^3.0.1"
-    discord.js: "npm:^14.26.4"
-    pino: "npm:^10.3.1"
-    pino-pretty: "npm:^13.1.3"
-    prism-media: "npm:^1.3.5"
-    tsx: "npm:^4.21.0"
-    typescript: "npm:^6.0.3"
-    vite: "npm:^8.0.12"
-    vitest: "npm:^4.1.6"
+    "@types/node": "npm:25.7.0"
+    commander: "npm:14.0.3"
+    discord-hybrid-sharding: "npm:3.0.1"
+    discord.js: "npm:14.26.4"
+    pino: "npm:10.3.1"
+    pino-pretty: "npm:13.1.3"
+    prism-media: "npm:1.3.5"
+    tsx: "npm:4.21.0"
+    typescript: "npm:6.0.3"
+    vite: "npm:8.0.12"
+    vitest: "npm:4.1.6"
   bin:
     tmt-bot: ./dist/index.js
   languageName: unknown
@@ -2522,19 +2535,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:^12.7.1":
-  version: 12.20.55
-  resolution: "@types/node@npm:12.20.55"
-  checksum: 10c0/3b190bb0410047d489c49bbaab592d2e6630de6a50f00ba3d7d513d59401d279972a8f5a598b5bb8ddc1702f8a2f4ec57a65d93852f9c329639738e7053637d1
-  languageName: node
-  linkType: hard
-
-"@types/node@npm:^25.7.0":
+"@types/node@npm:25.7.0, @types/node@npm:^25.7.0":
   version: 25.7.0
   resolution: "@types/node@npm:25.7.0"
   dependencies:
     undici-types: "npm:~7.21.0"
   checksum: 10c0/47ec7eaca154c36ad6d1ac0270e6e254eedf20b9dc49afe3bc76e4f7eba29ceac705f8903b162aeaf40e3941101ffe76ffb374989359ea3ef8c8509d8b443f55
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:^12.7.1":
+  version: 12.20.55
+  resolution: "@types/node@npm:12.20.55"
+  checksum: 10c0/3b190bb0410047d489c49bbaab592d2e6630de6a50f00ba3d7d513d59401d279972a8f5a598b5bb8ddc1702f8a2f4ec57a65d93852f9c329639738e7053637d1
   languageName: node
   linkType: hard
 
@@ -3350,7 +3363,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"commander@npm:^14.0.3":
+"commander@npm:14.0.3":
   version: 14.0.3
   resolution: "commander@npm:14.0.3"
   checksum: 10c0/755652564bbf56ff2ff083313912b326450d3f8d8c85f4b71416539c9a05c3c67dbd206821ca72635bf6b160e2afdefcb458e86b317827d5cb333b69ce7f1a24
@@ -3620,14 +3633,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"discord-hybrid-sharding@npm:^3.0.1":
+"discord-hybrid-sharding@npm:3.0.1":
   version: 3.0.1
   resolution: "discord-hybrid-sharding@npm:3.0.1"
   checksum: 10c0/4055276bfeab47b568f1158b4aefc01b9c99467db624699bb1209dbe644979692db6351ed8916f5e53cf40468655b2181167ec7fd76935d7052a7bce09bd9384
   languageName: node
   linkType: hard
 
-"discord.js@npm:^14.26.4":
+"discord.js@npm:14.26.4":
   version: 14.26.4
   resolution: "discord.js@npm:14.26.4"
   dependencies:
@@ -6191,23 +6204,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"openai@npm:^6.37.0":
-  version: 6.37.0
-  resolution: "openai@npm:6.37.0"
-  peerDependencies:
-    ws: ^8.18.0
-    zod: ^3.25 || ^4.0
-  peerDependenciesMeta:
-    ws:
-      optional: true
-    zod:
-      optional: true
-  bin:
-    openai: bin/cli
-  checksum: 10c0/31a506a79410a4e2a42bd4183143450fb468359733bf3458178bb8dd3ce4b125b2324940969a92862ad9e620e3a9be6710c875c856f9c422c9c35d6e81791848
-  languageName: node
-  linkType: hard
-
 "optionator@npm:^0.9.3":
   version: 0.9.4
   resolution: "optionator@npm:0.9.4"
@@ -6405,7 +6401,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pino-pretty@npm:^13.1.3":
+"pino-pretty@npm:13.1.3":
   version: 13.1.3
   resolution: "pino-pretty@npm:13.1.3"
   dependencies:
@@ -6435,7 +6431,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pino@npm:^10.3.1":
+"pino@npm:10.3.1":
   version: 10.3.1
   resolution: "pino@npm:10.3.1"
   dependencies:
@@ -6545,7 +6541,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prism-media@npm:^1.3.5":
+"prism-media@npm:1.3.5, prism-media@npm:^1.3.5":
   version: 1.3.5
   resolution: "prism-media@npm:1.3.5"
   peerDependencies:
@@ -7435,7 +7431,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tsx@npm:^4.21.0":
+"tsx@npm:4.21.0, tsx@npm:^4.21.0":
   version: 4.21.0
   resolution: "tsx@npm:4.21.0"
   dependencies:
@@ -7513,7 +7509,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:^6.0.3":
+"typescript@npm:6.0.3, typescript@npm:^6.0.3":
   version: 6.0.3
   resolution: "typescript@npm:6.0.3"
   bin:
@@ -7523,7 +7519,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@npm%3A^6.0.3#optional!builtin<compat/typescript>":
+"typescript@patch:typescript@npm%3A6.0.3#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A^6.0.3#optional!builtin<compat/typescript>":
   version: 6.0.3
   resolution: "typescript@patch:typescript@npm%3A6.0.3#optional!builtin<compat/typescript>::version=6.0.3&hash=5786d5"
   bin:
@@ -7729,7 +7725,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite@npm:^6.0.0 || ^7.0.0 || ^8.0.0, vite@npm:^8.0.12":
+"vite@npm:8.0.12, vite@npm:^6.0.0 || ^7.0.0 || ^8.0.0, vite@npm:^8.0.12":
   version: 8.0.12
   resolution: "vite@npm:8.0.12"
   dependencies:
@@ -7786,7 +7782,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vitest@npm:^4.1.6":
+"vitest@npm:4.1.6, vitest@npm:^4.1.6":
   version: 4.1.6
   resolution: "vitest@npm:4.1.6"
   dependencies:
@@ -8017,7 +8013,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^4.4.3":
+"zod@npm:^3.25.0 || ^4.0.0, zod@npm:^4.4.3":
   version: 4.4.3
   resolution: "zod@npm:4.4.3"
   checksum: 10c0/7ea31b558e88f9faf44f31dd185e2e1cbf51fed3081787fb96cc2534749b50c0acfc6da7f0922a7353ed092dd358c7d50c28ea96c94d04af64191bd33152eca3
