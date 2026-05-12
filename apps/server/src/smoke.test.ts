@@ -50,6 +50,7 @@ vi.mock('./voice/index.js', () => ({
 
 const { handleTtsJoin } = await import('./commands/tts/join.js')
 const { handleTtsLeave } = await import('./commands/tts/leave.js')
+const { handleTtsSettings } = await import('./commands/tts/settings/index.js')
 const { handleTtsSkip } = await import('./commands/tts/skip.js')
 type CommandContext = import('./commands/context.js').CommandContext
 
@@ -180,5 +181,24 @@ describe('Bot smoke tests', () => {
     await handleTtsSkip(i as never, buildCtx())
 
     expect(base.reply.mock.calls.length).toBeGreaterThan(0)
+  })
+
+  it('/tts user model replies with fixed model buttons', async () => {
+    const base = mockChatInputInteraction({
+      commandName: 'tts',
+      subcommandGroup: 'user',
+      subcommand: 'model',
+      guildId: '123456789012345678',
+    })
+
+    await handleTtsSettings(base as never, buildCtx())
+
+    const firstCallArg = base.reply.mock.calls[0]?.[0] as
+      | { components?: Array<{ components?: Array<{ data?: { custom_id?: string } }> }> }
+      | undefined
+    const row = firstCallArg?.components?.[0]
+    const customIds = row?.components?.map((component) => component.data?.custom_id)
+
+    expect(customIds).toEqual(['tts:user-model:gemini', 'tts:user-model:gpt-4o-mini'])
   })
 })
