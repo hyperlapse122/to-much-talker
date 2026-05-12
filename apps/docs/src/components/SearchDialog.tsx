@@ -80,7 +80,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps): JSX.Ele
   }, [open])
 
   useEffect(() => {
-    if (!open || pagefindRef.current !== null || status === 'loading') {
+    if (!open || pagefindRef.current !== null) {
       return
     }
 
@@ -99,7 +99,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps): JSX.Ele
     return () => {
       cancelled = true
     }
-  }, [open, status])
+  }, [open])
 
   useEffect(() => {
     if (!open) {
@@ -120,8 +120,14 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps): JSX.Ele
   }, [onOpenChange, open])
 
   useEffect(() => {
-    if (!open || query.trim().length < minimumQueryLength) {
+    const trimmedQuery = query.trim()
+
+    if (!open || trimmedQuery.length < minimumQueryLength) {
       setResults([])
+      return
+    }
+
+    if (status !== 'ready') {
       return
     }
 
@@ -133,7 +139,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps): JSX.Ele
 
     let cancelled = false
     const searchId = window.setTimeout(() => {
-      void pagefind.search(query).then(async (response) => {
+      void pagefind.search(trimmedQuery).then(async (response) => {
         if (cancelled || response === null) {
           return
         }
@@ -161,7 +167,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps): JSX.Ele
       cancelled = true
       window.clearTimeout(searchId)
     }
-  }, [open, query])
+  }, [open, query, status])
 
   if (!open) {
     return null
