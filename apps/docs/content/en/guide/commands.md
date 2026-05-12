@@ -6,4 +6,22 @@ order: 2
 
 # Commands Reference
 
-See the full [commands reference](/guide/commands).
+## /tts join
+Join your voice channel.
+**Usage**: `/tts join`
+
+## /tts leave
+Leave the voice channel.
+**Usage**: `/tts leave`
+
+## /tts say
+Read a message aloud.
+**Usage**: `/tts say message:<text>`
+
+## /settings view
+View current TTS settings.
+**Usage**: `/settings view`
+
+## /settings set
+Update a TTS setting.
+**Usage**: `/settings set key:<setting> value:<value>`
