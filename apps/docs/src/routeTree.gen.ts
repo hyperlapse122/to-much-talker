@@ -8,16 +8,52 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
+import { Route as rootRouteImport } from './app/__root'
+import { Route as SplatRouteImport } from './app/$'
+
+const SplatRoute = SplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() => import('./app/$.lazy').then((d) => d.Route))
+
+export interface FileRoutesByFullPath {
+  '/$': typeof SplatRoute
+}
+export interface FileRoutesByTo {
+  '/$': typeof SplatRoute
+}
+export interface FileRoutesById {
+  __root__: typeof rootRouteImport
+  '/$': typeof SplatRoute
+}
+export interface FileRouteTypes {
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths: '/$'
+  fileRoutesByTo: FileRoutesByTo
+  to: '/$'
+  id: '__root__' | '/$'
+  fileRoutesById: FileRoutesById
+}
+export interface RootRouteChildren {
+  SplatRoute: typeof SplatRoute
+}
+
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
     '/$': {
       id: '/$'
       path: '/$'
       fullPath: '/$'
-      preLoaderRoute: never
-      parentRoute: never
+      preLoaderRoute: typeof SplatRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
 
-export const routeTree = {}
+const rootRouteChildren: RootRouteChildren = {
+  SplatRoute: SplatRoute,
+}
+export const routeTree = rootRouteImport
+  ._addFileChildren(rootRouteChildren)
+  ._addFileTypes<FileRouteTypes>()
