@@ -1,0 +1,1 @@
+2026-05-12: Verified branch stayed on feature/rebuild-docs before cleanup. Used git rm --force --ignore-unmatch so tracked docs files were staged for deletion without touching apps/docs/content/ or apps/docs/playwright.config.ts.
