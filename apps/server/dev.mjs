@@ -40,12 +40,21 @@ for (const [key, value] of Object.entries(env)) {
 
 // Programmatic `vite build --watch`. Returns a Rollup watcher that emits
 // `BUNDLE_END` on every successful rebuild.
-const watcher = await build({
-  configFile: resolve(here, 'vite.config.ts'),
-  mode: 'development',
-  build: { watch: {} },
-})
 
+/**
+ * @type {import('rolldown').RolldownWatcher}
+ */
+const watcher = /** @type {import('rolldown').RolldownWatcher} */ (
+  await build({
+    configFile: resolve(here, 'vite.config.ts'),
+    mode: 'development',
+    build: { watch: {} },
+  })
+)
+
+/**
+ * @type {import('node:child_process').ChildProcess | null}
+ */
 let bot = null
 watcher.on('event', (ev) => {
   if (ev.code === 'BUNDLE_END' && bot === null) {
@@ -60,6 +69,9 @@ watcher.on('event', (ev) => {
   }
 })
 
+/**
+ * @param {NodeJS.Signals} signal
+ */
 const shutdown = (signal) => {
   watcher.close()
   if (bot) bot.kill(signal)
