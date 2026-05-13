@@ -22,11 +22,15 @@ test('search opens with keyboard shortcut and navigates from Pagefind result', a
   await expect(searchInput).toBeFocused()
 
   const firstResult = dialog.locator('[role="option"]').first()
-  await expect(firstResult).toContainText('Setup Guide')
+  // Pagefind returns sub-section fragments when the query matches a heading
+  // (here "Prerequisites" is an h2 in the Setup guide), so the result's
+  // `title` field can be empty. Verify the destination via the link href
+  // instead of the rendered title text.
   await expect(firstResult).toContainText('Prerequisites')
+  await expect(firstResult.locator('a').first()).toHaveAttribute('href', /\/guide\/setup/)
 
   await firstResult.click()
-  await expect(page).toHaveURL(/\/guide\/setup$/)
+  await expect(page).toHaveURL(/\/guide\/setup/)
   await expect(page.getByRole('dialog', { name: 'Search' })).toBeHidden()
 })
 
