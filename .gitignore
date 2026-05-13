@@ -48,3 +48,6 @@ Thumbs.db
 
 # TanStack Start
 app.config.timestamp_*.js
+
+# Turborepo prune
+/out*
