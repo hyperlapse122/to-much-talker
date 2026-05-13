@@ -9,9 +9,6 @@ permissions:
   contents: read
   pages: write
   id-token: write
-  # `administration: write` lets `actions/configure-pages` auto-enable Pages
-  # on first use; after the first successful run it becomes a no-op.
-  administration: write
 
 concurrency:
   group: pages
@@ -33,9 +30,11 @@ jobs:
           cache: 'yarn'
 
       - name: Setup Pages
+        # Pages must be enabled once in repository Settings → Pages →
+        # Source: "GitHub Actions". Auto-enablement via `enablement: true`
+        # requires `administration: write`, which is NOT a valid
+        # GITHUB_TOKEN permission scope — that scope only exists on PATs.
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Install dependencies
         run: yarn install --immutable
