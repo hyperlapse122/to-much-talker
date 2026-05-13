@@ -22,16 +22,18 @@ import { fileURLToPath } from 'node:url'
 import { build, loadEnv } from 'vite'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const repoRoot = resolve(here, '..', '..')
 
 // `loadEnv(mode, dir, prefixes)`:
 //   - `mode` controls which `.env.[mode]*` files are merged in.
-//   - `dir` is where to look for `.env*` files (our `.env` lives at repo root).
-//   - `prefixes = ''` disables the `VITE_*` prefix filter. This is safe because
+//   - `dir` scopes env loading to this workspace, matching the source-build
+//     instructions in `apps/docs/content/en/guide/setup.md`
+//     (`cp .env.example apps/server/.env`). Docker bootstrap uses
+//     `docker run --env-file` against a separate root-level `.env` instead.
+//   - `prefixes = ''` disables the `VITE_*` prefix filter. Safe here because
 //     the server is a Node-only bundle — there is no client to leak to. The
 //     production `vite build` still uses the default `envPrefix` (`VITE_`),
 //     so unprefixed secrets are never inlined into `dist/index.js`.
-const env = loadEnv('development', repoRoot, '')
+const env = loadEnv('development', here, '')
 for (const [key, value] of Object.entries(env)) {
   if (process.env[key] === undefined) {
     process.env[key] = value
@@ -57,6 +59,13 @@ const watcher = /** @type {import('rolldown').RolldownWatcher} */ (
  */
 let bot = null
 watcher.on('event', (ev) => {
+  // Release per-build resources so plugin `closeBundle` hooks fire and file
+  // handles do not accumulate across long-running `yarn dev` sessions. The
+  // Rollup watcher contract requires the caller to close each result.
+  if (ev.code === 'BUNDLE_END' || ev.code === 'ERROR') {
+    void ev.result?.close()
+  }
+
   if (ev.code === 'BUNDLE_END' && bot === null) {
     // First successful build → kick off the bot. `node --watch` then handles
     // subsequent restarts each time Vite rewrites `dist/index.js`.
