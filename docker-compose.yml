@@ -12,9 +12,13 @@ services:
     volumes:
       - bot-data:/app/data
     restart: unless-stopped
+    # `required: false` lets `--profile bot` run standalone without postgres
+    # (SQLite default). When both profiles are enabled, bot still waits for
+    # postgres to become healthy.
     depends_on:
       postgres:
         condition: service_healthy
+        required: false
     profiles:
       - bot
 
