@@ -293,6 +293,15 @@ async function handleApiKey(
     return
   }
 
+  const permissionsRoleId = await loadPermissionsRoleId(ctx, guildId)
+  if (permissionsRoleId !== null && !memberHasRole(interaction.member, permissionsRoleId)) {
+    await interaction.reply({
+      content: 'You do not have permission to update server TTS settings.',
+      flags: MessageFlags.Ephemeral,
+    })
+    return
+  }
+
   const apiKey = interaction.options.getString('key', true)
   const encrypted = encryptApiKey(apiKey, ctx)
 
@@ -310,6 +319,31 @@ async function handleApiKey(
     content: 'OpenRouter API key saved for this server.',
     flags: MessageFlags.Ephemeral,
   })
+}
+
+async function loadPermissionsRoleId(ctx: CommandContext, guildId: string): Promise<string | null> {
+  if (ctx.db.dialect === 'sqlite') {
+    const row = ctx.db.db
+      .select({ permissionsRoleId: sqlite.guildSettings.permissionsRoleId })
+      .from(sqlite.guildSettings)
+      .where(eq(sqlite.guildSettings.guildId, guildId))
+      .get()
+    return row?.permissionsRoleId ?? null
+  }
+
+  const rows = await ctx.db.db
+    .select({ permissionsRoleId: pg.guildSettings.permissionsRoleId })
+    .from(pg.guildSettings)
+    .where(eq(pg.guildSettings.guildId, guildId))
+    .limit(1)
+  return rows[0]?.permissionsRoleId ?? null
+}
+
+function memberHasRole(member: ChatInputCommandInteraction['member'], roleId: string): boolean {
+  if (member === null || typeof member === 'string') return false
+  if (!('roles' in member)) return false
+  const { roles } = member
+  return Array.isArray(roles) ? roles.includes(roleId) : roles.cache.has(roleId)
 }
 
 function encryptApiKey(apiKey: string, ctx: CommandContext): EncryptedApiKey {

@@ -78,7 +78,9 @@ function withoutGuild(interaction: MockInteraction): MockInteraction & { guild: 
  * Minimal CommandContext stub — handlers only touch `logger.child(...)` in
  * the join/leave/skip code paths exercised here.
  */
-function buildCtx(params: { readonly preferredVoice?: string } = {}): CommandContext {
+function buildCtx(
+  params: { readonly preferredVoice?: string; readonly permissionsRoleId?: string | null } = {},
+): CommandContext {
   const childLogger = {
     info: vi.fn(),
     error: vi.fn(),
@@ -256,5 +258,20 @@ describe('Bot smoke tests', () => {
       ButtonStyle.Secondary,
     ])
     expect(firstCallArg?.content).toContain('Kore [selected]: Warm, smooth, and balanced.')
+  })
+
+  it('/tts settings api-key rejects members without the configured settings role', async () => {
+    const base = mockChatInputInteraction({
+      commandName: 'tts',
+      subcommandGroup: 'settings',
+      subcommand: 'api-key',
+      guildId: '123456789012345678',
+      options: { key: 'sk-or-test' },
+    })
+
+    await handleTtsSettings(base as never, buildCtx({ permissionsRoleId: 'role-1' }))
+
+    const firstCallArg = base.reply.mock.calls[0]?.[0] as { content?: string } | undefined
+    expect(firstCallArg?.content).toContain('permission')
   })
 })
