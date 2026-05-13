@@ -4,6 +4,9 @@ pre-commit:
     lint-staged:
       glob: '*.{ts,tsx,js,jsx,mjs,cjs}'
       run: yarn eslint --fix {staged_files} && yarn prettier --write {staged_files}
+      # Re-stage files that eslint/prettier rewrote so the auto-fix lands in
+      # the same commit instead of dangling in the working tree afterwards.
+      stage_fixed: true
     typecheck:
       run: yarn tsc --noEmit -p tsconfig.base.json || true
 
