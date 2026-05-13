@@ -167,7 +167,8 @@ function buildVoicePickerContent(
   voicePresets: readonly TtsVoicePreset[],
 ): string {
   const lines = voicePresets.map((preset) => {
-    const marker = preset.voice === selectedVoice ? ` ${m.tts_settings_voice_selected_marker()}` : ''
+    const marker =
+      preset.voice === selectedVoice ? ` ${m.tts_settings_voice_selected_marker()}` : ''
     return `- ${m.tts_settings_voice_picker_option({
       label: preset.label,
       marker,
@@ -201,7 +202,10 @@ function allowedVoicePresets(modelSettings: TtsRuntimeModelSettings): readonly T
   return TTS_VOICE_PRESETS.filter((preset) => isVoicePresetAllowed(preset, modelSettings))
 }
 
-function isVoicePresetAllowed(preset: TtsVoicePreset, modelSettings: TtsRuntimeModelSettings): boolean {
+function isVoicePresetAllowed(
+  preset: TtsVoicePreset,
+  modelSettings: TtsRuntimeModelSettings,
+): boolean {
   return modelSettings.allowedModels.includes(preset.model)
 }
 

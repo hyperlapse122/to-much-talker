@@ -128,7 +128,9 @@ function normalizeModelSettings(
   return { defaultModel, allowedModels }
 }
 
-function sanitizeAllowedModels(allowedModels: readonly string[] | undefined): readonly SupportedTtsModel[] {
+function sanitizeAllowedModels(
+  allowedModels: readonly string[] | undefined,
+): readonly SupportedTtsModel[] {
   if (allowedModels === undefined || allowedModels.length === 0) return SUPPORTED_TTS_MODELS
 
   const sanitized = SUPPORTED_TTS_MODELS.filter((model) => allowedModels.includes(model))
@@ -139,7 +141,11 @@ function sanitizeDefaultModel(
   defaultModel: string | undefined,
   allowedModels: readonly SupportedTtsModel[],
 ): SupportedTtsModel {
-  if (defaultModel !== undefined && isSupportedTtsModel(defaultModel) && allowedModels.includes(defaultModel)) {
+  if (
+    defaultModel !== undefined &&
+    isSupportedTtsModel(defaultModel) &&
+    allowedModels.includes(defaultModel)
+  ) {
     return defaultModel
   }
 
@@ -161,9 +167,7 @@ async function loadUserPreferredModel(
     const row = ctx.db.db
       .select({ preferredModel: sqlite.userSettings.preferredModel })
       .from(sqlite.userSettings)
-      .where(
-        and(eq(sqlite.userSettings.guildId, guildId), eq(sqlite.userSettings.userId, userId)),
-      )
+      .where(and(eq(sqlite.userSettings.guildId, guildId), eq(sqlite.userSettings.userId, userId)))
       .get()
     return row?.preferredModel ?? null
   }
@@ -185,9 +189,7 @@ async function loadUserPreferredVoice(
     const row = ctx.db.db
       .select({ preferredVoice: sqlite.userSettings.preferredVoice })
       .from(sqlite.userSettings)
-      .where(
-        and(eq(sqlite.userSettings.guildId, guildId), eq(sqlite.userSettings.userId, userId)),
-      )
+      .where(and(eq(sqlite.userSettings.guildId, guildId), eq(sqlite.userSettings.userId, userId)))
       .get()
     return row?.preferredVoice ?? null
   }
@@ -207,7 +209,8 @@ async function loadGuildApiKey(guildId: string, ctx: CommandContext): Promise<st
 
   const keyRing = loadRuntimeKeyRing(ctx)
   const key = keyRing.byVersion(stored.version)
-  if (key === undefined) throw new Error(`Missing API key encryption key version ${String(stored.version)}`)
+  if (key === undefined)
+    throw new Error(`Missing API key encryption key version ${String(stored.version)}`)
 
   const decrypted = decrypt(
     {

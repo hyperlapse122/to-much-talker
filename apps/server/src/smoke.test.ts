@@ -395,8 +395,8 @@ describe('Bot smoke tests', () => {
           components?: { components?: { data?: { custom_id?: string } }[] }[]
         }
       | undefined
-    const customIds = firstCallArg?.components?.flatMap((row) =>
-      row.components?.map((component) => component.data?.custom_id) ?? [],
+    const customIds = firstCallArg?.components?.flatMap(
+      (row) => row.components?.map((component) => component.data?.custom_id) ?? [],
     )
 
     expect(customIds).toContain('tts:user-voice:gemini-zephyr')
