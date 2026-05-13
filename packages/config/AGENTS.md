@@ -15,4 +15,5 @@ This package is the **only** place that reads `process.env`. All other packages 
 
 1. Add to `src/schema.ts` with type, validation, default, and description comment
 2. Add to root `.env.example` with description and required/optional flag
-3. Run `yarn workspace @to-much-talker/config tsc --noEmit` to verify
+3. Update the env-var table in `apps/docs/content/en/guide/setup.md` (see root AGENTS.md "User Documentation Sync")
+4. Run `yarn workspace @to-much-talker/config tsc --noEmit` to verify
