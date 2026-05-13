@@ -1,3 +1,5 @@
+import { getVoiceConnection } from '@discordjs/voice'
+import { eq, pg, sqlite } from '@to-much-talker/db'
 import { Events } from 'discord.js'
 import type { Client, Message } from 'discord.js'
 import type { CommandContext } from '../commands/context.js'
@@ -22,6 +24,13 @@ async function handleMessage(message: Message, ctx: CommandContext): Promise<voi
   if (message.guildId === null) return
   if (message.content.trim().length === 0) return
 
+  const connection = getVoiceConnection(message.guildId)
+  const voiceChannelId = connection?.joinConfig.channelId
+  if (voiceChannelId === undefined || voiceChannelId === null) return
+
+  const boundTextChannelId = await loadBoundTextChannelId(ctx, voiceChannelId)
+  if (boundTextChannelId !== message.channelId) return
+
   const result = await enqueueTtsText(ctx, {
     guildId: message.guildId,
     channelId: message.channelId,
@@ -32,4 +41,25 @@ async function handleMessage(message: Message, ctx: CommandContext): Promise<voi
   })
 
   if (!result.accepted) return
+}
+
+async function loadBoundTextChannelId(
+  ctx: CommandContext,
+  voiceChannelId: string,
+): Promise<string | null> {
+  if (ctx.db.dialect === 'sqlite') {
+    const row = ctx.db.db
+      .select({ boundTextChannelId: sqlite.channelSettings.boundTextChannelId })
+      .from(sqlite.channelSettings)
+      .where(eq(sqlite.channelSettings.channelId, voiceChannelId))
+      .get()
+    return row?.boundTextChannelId ?? null
+  }
+
+  const rows = await ctx.db.db
+    .select({ boundTextChannelId: pg.channelSettings.boundTextChannelId })
+    .from(pg.channelSettings)
+    .where(eq(pg.channelSettings.channelId, voiceChannelId))
+    .limit(1)
+  return rows[0]?.boundTextChannelId ?? null
 }
