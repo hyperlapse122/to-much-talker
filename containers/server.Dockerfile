@@ -38,7 +38,11 @@ RUN yarn install --immutable
 # 2. Full source layer
 COPY full/ ./
 
-# 3. Bundle with Vite 8 — everything is inlined except native modules
+# 3. Compile Paraglide output in the pruned context; src/paraglide/ is gitignored
+#    and missing from fresh Docker builds until i18n is compiled.
+RUN yarn workspace @to-much-talker/i18n compile
+
+# 4. Bundle with Vite 8 — everything is inlined except native modules
 RUN yarn workspace @to-much-talker/server build
 
 # ---------------------------------------------------------------
