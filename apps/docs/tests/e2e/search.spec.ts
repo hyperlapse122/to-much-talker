@@ -11,7 +11,15 @@ test('search opens with keyboard shortcut and navigates from Pagefind result', a
 
   const searchInput = dialog.getByRole('combobox', { name: 'Search docs' })
   await expect(searchInput).toBeFocused()
+  await page.keyboard.press('Shift+Tab')
+  await expect(dialog.getByRole('button', { name: 'Close search' })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(searchInput).toBeFocused()
+
   await searchInput.fill('Prerequisites')
+  await page.keyboard.press('Control+KeyK')
+  await expect(dialog).toBeVisible()
+  await expect(searchInput).toBeFocused()
 
   const firstResult = dialog.locator('[role="option"]').first()
   await expect(firstResult).toContainText('Setup Guide')

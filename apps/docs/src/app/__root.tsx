@@ -6,12 +6,27 @@ import { SearchDialog } from '@/components/SearchDialog.js'
 import { Sidebar } from '@/components/Sidebar.js'
 import '@/styles/globals.css'
 
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+
+  return (
+    target.isContentEditable ||
+    target.closest('input, textarea, select, [contenteditable="true"]') !== null
+  )
+}
+
 function RootLayout(): JSX.Element {
   const [searchOpen, setSearchOpen] = useState(false)
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent): void {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      if (
+        (event.metaKey || event.ctrlKey) &&
+        event.key.toLowerCase() === 'k' &&
+        !isEditableTarget(event.target)
+      ) {
         event.preventDefault()
         setSearchOpen((current) => !current)
       }
