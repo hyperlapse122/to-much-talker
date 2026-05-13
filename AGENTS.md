@@ -163,6 +163,36 @@ Conventional Commits enforced via commitlint + lefthook:
 - `refactor(scope): description` — restructuring
 - `test(scope): description` — tests
 
+## User Documentation Sync
+
+The public docs site (`apps/docs/`) is the canonical user-facing reference. Agents MUST keep it in sync when code changes affect deployment or configuration.
+
+### Which docs to update
+
+| Code change | Must update |
+|---|---|
+| Env var added, removed, or renamed in `packages/config/src/schema.ts` | 1. `.env.example` 2. `apps/docs/content/en/guide/setup.md` env table |
+| Docker config changed (`containers/*.Dockerfile`, `docker-compose.yml`) | `apps/docs/content/en/guide/setup.md` Docker section |
+| CLI command added or changed (`apps/server/src/cli.ts`) | `apps/docs/content/en/guide/commands.md` |
+| Runtime startup requirements changed (entrypoint, ports, volumes) | `apps/docs/content/en/guide/setup.md` Docker or source section |
+| Key rotation or crypto procedure changed (`packages/crypto/`) | `apps/docs/content/en/guide/setup.md` key-generation section + `apps/server/README.md` |
+
+When in doubt, update the docs. Outdated docs are worse than no docs.
+
+### Canonical locations
+
+- **.env.example** — authoritative env-var manifest (every var, with comments)
+- **packages/config/src/schema.ts** — authoritative validation (types, defaults, constraints)
+- **apps/docs/content/en/guide/setup.md** — authoritative user-facing getting-started guide
+- **apps/docs/AGENTS.md** — canonical docs-site rules (markdown pipeline, frontmatter, build)
+- **apps/server/README.md** — developer README (cross-links to docs site; does NOT duplicate)
+
+### Adding a new docs page
+
+1. Create `apps/docs/content/en/<section>/<slug>.md` with frontmatter `title`, `description`, `order`.
+2. The sidebar auto-discovers pages from `content-collections` — no manual nav file needed.
+3. Rebuild: `yarn workspace @to-much-talker/docs build`. Verify the page appears at `/<section>/<slug>`.
+
 ## Definition of Done
 
 A task is complete when:
@@ -173,3 +203,4 @@ A task is complete when:
 4. No `as any`, no default exports (except config files), no `console.log` outside CLI
 5. Every exported function has an explicit return type
 6. AGENTS.md exists in the package/app directory
+7. User-facing docs in sync: env-var, Docker, or startup changes include a corresponding update to `apps/docs/content/en/guide/setup.md`
