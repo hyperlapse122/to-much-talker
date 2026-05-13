@@ -1,8 +1,23 @@
-import { existsSync, mkdtempSync, rmSync } from 'node:fs'
-import { join } from 'node:path'
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { afterEach, describe, expect, it } from 'vitest'
+import { join } from 'node:path'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
 import { openSqlite } from './client.js'
+
+vi.mock('better-sqlite3', () => ({
+  default: class MockDatabase {
+    constructor(filePath: string) {
+      if (filePath !== ':memory:') {
+        writeFileSync(filePath, '')
+      }
+    }
+
+    close(): void {
+      void 0
+    }
+  },
+}))
 
 const createdDirs: string[] = []
 

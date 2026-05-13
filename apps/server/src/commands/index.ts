@@ -6,9 +6,11 @@ import { handleTtsJoin } from './tts/join.js'
 import { handleTtsLeave } from './tts/leave.js'
 import { handleTtsSay } from './tts/say.js'
 import {
-  TTS_VOICE_BUTTON_IDS,
+  handleTtsApiKeyModalSubmit,
   handleTtsSettings,
   handleTtsVoiceButton,
+  TTS_API_KEY_MODAL_CUSTOM_ID,
+  TTS_VOICE_BUTTON_IDS,
 } from './tts/settings/index.js'
 import { handleTtsSetup } from './tts/setup.js'
 import { handleTtsSkip } from './tts/skip.js'
@@ -36,5 +38,6 @@ export function registerCommandHandlers(router: InteractionRouter, ctx: CommandC
   for (const buttonId of TTS_VOICE_BUTTON_IDS) {
     router.registerButton(buttonId, (i) => handleTtsVoiceButton(i, ctx))
   }
+  router.registerModal(TTS_API_KEY_MODAL_CUSTOM_ID, (i) => handleTtsApiKeyModalSubmit(i, ctx))
   router.register('tts', 'setup', (i) => handleTtsSetup(i, ctx))
 }

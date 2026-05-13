@@ -1,6 +1,6 @@
 import { OpenRouterClient } from '@to-much-talker/ai'
-import { decrypt, parseMasterKey } from '@to-much-talker/crypto'
-import { eq, pg, sqlite } from '@to-much-talker/db'
+import { decrypt, KeyRing, parseMasterKey } from '@to-much-talker/crypto'
+import { and, eq, pg, sqlite } from '@to-much-talker/db'
 import type { CommandContext } from '../context.js'
 import {
   defaultVoicePresetForModel,
@@ -10,6 +10,7 @@ import {
 
 const DEFAULT_MODEL = 'google/gemini-3.1-flash-tts-preview'
 const SUPPORTED_TTS_MODELS = [DEFAULT_MODEL, 'openai/gpt-4o-mini-tts-2025-12-15'] as const
+type SupportedTtsModel = (typeof SUPPORTED_TTS_MODELS)[number]
 
 interface StoredApiKey {
   readonly encrypted: string
@@ -23,6 +24,8 @@ export interface TtsRuntimeConfig {
   readonly defaultModel: string
   readonly allowedModels: readonly string[]
 }
+
+export type TtsRuntimeModelSettings = Pick<TtsRuntimeConfig, 'defaultModel' | 'allowedModels'>
 
 const runtimeCache = new Map<string, Promise<TtsRuntimeConfig | null>>()
 
@@ -45,6 +48,13 @@ export async function getGuildTtsRuntime(
   return runtime
 }
 
+export async function getGuildTtsModelSettings(
+  ctx: CommandContext,
+  guildId: string,
+): Promise<TtsRuntimeModelSettings> {
+  return loadGuildModelSettings(guildId, ctx)
+}
+
 async function loadGuildTtsRuntime(
   ctx: CommandContext,
   guildId: string,
@@ -58,33 +68,35 @@ async function loadGuildTtsRuntime(
 
 export async function resolveUserTtsModel(
   ctx: CommandContext,
+  guildId: string,
   userId: string,
   runtime: TtsRuntimeConfig,
 ): Promise<string> {
-  const preferredModel = await loadUserPreferredModel(userId, ctx)
+  const preferredModel = await loadUserPreferredModel(guildId, userId, ctx)
   if (preferredModel === null) return runtime.defaultModel
   return runtime.allowedModels.includes(preferredModel) ? preferredModel : runtime.defaultModel
 }
 
 export async function resolveUserTtsPreset(
   ctx: CommandContext,
+  guildId: string,
   userId: string,
   runtime: TtsRuntimeConfig,
 ): Promise<TtsVoicePreset> {
-  const preferredVoice = await loadUserPreferredVoice(userId, ctx)
+  const preferredVoice = await loadUserPreferredVoice(guildId, userId, ctx)
   const preferredPreset = preferredVoice === null ? null : findVoicePresetByVoice(preferredVoice)
   if (preferredPreset !== null && runtime.allowedModels.includes(preferredPreset.model)) {
     return preferredPreset
   }
 
-  const model = await resolveUserTtsModel(ctx, userId, runtime)
+  const model = await resolveUserTtsModel(ctx, guildId, userId, runtime)
   return defaultVoicePresetForModel(model)
 }
 
 async function loadGuildModelSettings(
   guildId: string,
   ctx: CommandContext,
-): Promise<Pick<TtsRuntimeConfig, 'defaultModel' | 'allowedModels'>> {
+): Promise<TtsRuntimeModelSettings> {
   if (ctx.db.dialect === 'sqlite') {
     const row = ctx.db.db
       .select({
@@ -110,20 +122,48 @@ async function loadGuildModelSettings(
 
 function normalizeModelSettings(
   row: { defaultModel: string; allowedModels: string[] } | undefined,
-): Pick<TtsRuntimeConfig, 'defaultModel' | 'allowedModels'> {
-  if (row === undefined) return { defaultModel: DEFAULT_MODEL, allowedModels: SUPPORTED_TTS_MODELS }
-  return {
-    defaultModel: row.defaultModel,
-    allowedModels: row.allowedModels.length > 0 ? row.allowedModels : SUPPORTED_TTS_MODELS,
-  }
+): TtsRuntimeModelSettings {
+  const allowedModels = sanitizeAllowedModels(row?.allowedModels)
+  const defaultModel = sanitizeDefaultModel(row?.defaultModel, allowedModels)
+  return { defaultModel, allowedModels }
 }
 
-async function loadUserPreferredModel(userId: string, ctx: CommandContext): Promise<string | null> {
+function sanitizeAllowedModels(allowedModels: readonly string[] | undefined): readonly SupportedTtsModel[] {
+  if (allowedModels === undefined || allowedModels.length === 0) return SUPPORTED_TTS_MODELS
+
+  const sanitized = SUPPORTED_TTS_MODELS.filter((model) => allowedModels.includes(model))
+  return sanitized.length > 0 ? sanitized : SUPPORTED_TTS_MODELS
+}
+
+function sanitizeDefaultModel(
+  defaultModel: string | undefined,
+  allowedModels: readonly SupportedTtsModel[],
+): SupportedTtsModel {
+  if (defaultModel !== undefined && isSupportedTtsModel(defaultModel) && allowedModels.includes(defaultModel)) {
+    return defaultModel
+  }
+
+  if (allowedModels.includes(DEFAULT_MODEL)) return DEFAULT_MODEL
+
+  return allowedModels[0] ?? DEFAULT_MODEL
+}
+
+function isSupportedTtsModel(model: string): model is SupportedTtsModel {
+  return SUPPORTED_TTS_MODELS.includes(model as SupportedTtsModel)
+}
+
+async function loadUserPreferredModel(
+  guildId: string,
+  userId: string,
+  ctx: CommandContext,
+): Promise<string | null> {
   if (ctx.db.dialect === 'sqlite') {
     const row = ctx.db.db
       .select({ preferredModel: sqlite.userSettings.preferredModel })
       .from(sqlite.userSettings)
-      .where(eq(sqlite.userSettings.userId, userId))
+      .where(
+        and(eq(sqlite.userSettings.guildId, guildId), eq(sqlite.userSettings.userId, userId)),
+      )
       .get()
     return row?.preferredModel ?? null
   }
@@ -131,17 +171,23 @@ async function loadUserPreferredModel(userId: string, ctx: CommandContext): Prom
   const rows = await ctx.db.db
     .select({ preferredModel: pg.userSettings.preferredModel })
     .from(pg.userSettings)
-    .where(eq(pg.userSettings.userId, userId))
+    .where(and(eq(pg.userSettings.guildId, guildId), eq(pg.userSettings.userId, userId)))
     .limit(1)
   return rows[0]?.preferredModel ?? null
 }
 
-async function loadUserPreferredVoice(userId: string, ctx: CommandContext): Promise<string | null> {
+async function loadUserPreferredVoice(
+  guildId: string,
+  userId: string,
+  ctx: CommandContext,
+): Promise<string | null> {
   if (ctx.db.dialect === 'sqlite') {
     const row = ctx.db.db
       .select({ preferredVoice: sqlite.userSettings.preferredVoice })
       .from(sqlite.userSettings)
-      .where(eq(sqlite.userSettings.userId, userId))
+      .where(
+        and(eq(sqlite.userSettings.guildId, guildId), eq(sqlite.userSettings.userId, userId)),
+      )
       .get()
     return row?.preferredVoice ?? null
   }
@@ -149,7 +195,7 @@ async function loadUserPreferredVoice(userId: string, ctx: CommandContext): Prom
   const rows = await ctx.db.db
     .select({ preferredVoice: pg.userSettings.preferredVoice })
     .from(pg.userSettings)
-    .where(eq(pg.userSettings.userId, userId))
+    .where(and(eq(pg.userSettings.guildId, guildId), eq(pg.userSettings.userId, userId)))
     .limit(1)
   return rows[0]?.preferredVoice ?? null
 }
@@ -159,10 +205,9 @@ async function loadGuildApiKey(guildId: string, ctx: CommandContext): Promise<st
     ctx.db.dialect === 'sqlite' ? loadSqliteApiKey(guildId, ctx) : await loadPgApiKey(guildId, ctx)
   if (stored === null) return null
 
-  const masterKey = parseMasterKey(ctx.config.MASTER_ENC_KEY)
-  if (!masterKey.ok) {
-    throw masterKey.error
-  }
+  const keyRing = loadRuntimeKeyRing(ctx)
+  const key = keyRing.byVersion(stored.version)
+  if (key === undefined) throw new Error(`Missing API key encryption key version ${String(stored.version)}`)
 
   const decrypted = decrypt(
     {
@@ -170,7 +215,7 @@ async function loadGuildApiKey(guildId: string, ctx: CommandContext): Promise<st
       iv: Buffer.from(stored.iv, 'base64'),
       authTag: Buffer.from(stored.authTag, 'base64'),
     },
-    masterKey.value,
+    key,
   )
 
   if (!decrypted.ok) {
@@ -178,6 +223,17 @@ async function loadGuildApiKey(guildId: string, ctx: CommandContext): Promise<st
   }
 
   return decrypted.value
+}
+
+function loadRuntimeKeyRing(ctx: CommandContext): KeyRing {
+  const masterKey = parseMasterKey(ctx.config.MASTER_ENC_KEY)
+  if (!masterKey.ok) {
+    throw masterKey.error
+  }
+
+  const keyRing = new KeyRing()
+  keyRing.addKey(ctx.config.MASTER_ENC_KEY_VERSION, masterKey.value)
+  return keyRing
 }
 
 function loadSqliteApiKey(guildId: string, ctx: CommandContext): StoredApiKey | null {

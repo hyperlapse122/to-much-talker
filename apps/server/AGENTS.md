@@ -11,30 +11,30 @@ src/
   logger.ts         — Pino logger instance with redaction
   bot/
     index.ts        — runBotWorker() + runClusterManager() dispatchers
-    client.ts       — Discord.js Client setup (Task 13)
-    commands-registry.ts  — Slash command registration (Task 13)
-    locale-bridge.ts      — Locale-to-Discord-locale mapping (Task 13)
+    client.ts       — Discord.js Client setup
+    commands-registry.ts  — Slash command registration
+    locale-bridge.ts      — Locale-to-Discord-locale mapping
   voice/
-    player.ts       — Per-guild Player (Task 14)
-    pipeline.ts     — audioBytesToOpus() (Task 14)
-    connection.ts   — joinVoice() (Task 14)
-    resource.ts     — createAudioResourceFromBuffer() (Task 14)
+    player.ts       — Per-guild Player
+    pipeline.ts     — audioBytesToOpus()
+    connection.ts   — joinVoice()
+    resource.ts     — createAudioResourceFromBuffer()
   queue/
-    manager.ts      — Per-channel queue manager (Task 15)
-    strategies/     — drop-oldest, drop-newest, interrupt (Task 15)
+    manager.ts      — Per-channel queue manager
+    strategies/     — drop-oldest, drop-newest, interrupt
   commands/
     tts/
-      join.ts       — /tts join (Task 19)
-      leave.ts      — /tts leave (Task 19)
-      say.ts        — /tts say (Task 20)
-      settings/     — /tts settings * (Task 21)
+      join.ts       — /tts join
+      leave.ts      — /tts leave
+      say.ts        — /tts say
+      settings/     — /tts settings *
   setup/
-    wizard.ts       — /tts setup (Task 22)
-    welcome.ts      — guildCreate DM (Task 22)
+    wizard.ts       — /tts setup
+    welcome.ts      — guildCreate DM
   ipc/
-    hybridTransport.ts  — IpcTransport impl (Task 17)
+    hybridTransport.ts  — IpcTransport impl
   cli/
-    keyRotate.ts    — key rotate cmd (Task 18)
+    keyRotate.ts    — key rotate cmd
 ```
 
 ## Critical Rules
@@ -42,6 +42,7 @@ src/
 - NEVER log tokens, API keys, or authorization headers — pino redaction is configured
 - NEVER `process.exit()` outside the main entrypoint and CLI action modules
 - NEVER let a Discord interaction time out — always reply() or editReply()
+- API-key settings flow must collect secrets only through authorized modals, reauthorize modal submission before storage, and must not claim OpenRouter validation unless network validation is actually implemented
 - Discord rate limits: queue multi-embed responses; never burst
 - Voice connections: always clean up on error/disconnect (player.stop() + connection.destroy())
 - All user-facing strings MUST come from `@to-much-talker/i18n` message keys — no hardcoded English
@@ -108,7 +109,7 @@ tmt-bot [command]
 Commands:
   start                 Start the bot (default; auto-detects cluster vs worker)
   key gen               Generate a new AES-256-GCM master key (prints base64)
-  key rotate --new-key  Rotate master key (re-encrypts all stored keys) — Task 18
+  key rotate --new-key  Rotate master key (re-encrypts all stored keys)
   migrate               Run database migrations only
 ```
 

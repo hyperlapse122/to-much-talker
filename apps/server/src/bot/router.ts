@@ -1,5 +1,11 @@
-import { Events, MessageFlags } from 'discord.js'
-import type { ButtonInteraction, ChatInputCommandInteraction, Client } from 'discord.js'
+import {
+  type ButtonInteraction,
+  type ChatInputCommandInteraction,
+  type Client,
+  Events,
+  MessageFlags,
+  type ModalSubmitInteraction,
+} from 'discord.js'
 import { logger } from '../logger.js'
 
 const log = logger.child({ component: 'router' })
@@ -9,6 +15,7 @@ const log = logger.child({ component: 'router' })
  */
 export type CommandHandler = (interaction: ChatInputCommandInteraction) => Promise<void>
 export type ButtonHandler = (interaction: ButtonInteraction) => Promise<void>
+export type ModalHandler = (interaction: ModalSubmitInteraction) => Promise<void>
 
 /** Map key: `${commandName}` or `${commandName}.${subcommand}`. */
 type HandlerKey = string
@@ -24,6 +31,7 @@ type HandlerKey = string
 export class InteractionRouter {
   readonly #handlers = new Map<HandlerKey, CommandHandler>()
   readonly #buttonHandlers = new Map<string, ButtonHandler>()
+  readonly #modalHandlers = new Map<string, ModalHandler>()
 
   /**
    * Register a handler. Pass `null` for `subcommand` to handle the
@@ -36,6 +44,10 @@ export class InteractionRouter {
 
   registerButton(customId: string, handler: ButtonHandler): void {
     this.#buttonHandlers.set(customId, handler)
+  }
+
+  registerModal(customId: string, handler: ModalHandler): void {
+    this.#modalHandlers.set(customId, handler)
   }
 
   async dispatch(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -103,6 +115,38 @@ export class InteractionRouter {
     }
   }
 
+  async dispatchModal(interaction: ModalSubmitInteraction): Promise<void> {
+    const handler = this.#modalHandlers.get(interaction.customId)
+    if (handler === undefined) {
+      log.warn({ customId: interaction.customId }, 'No handler registered for modal')
+      await interaction.reply({ content: 'Unknown action.', flags: MessageFlags.Ephemeral })
+      return
+    }
+
+    try {
+      await handler(interaction)
+    } catch (error) {
+      log.error(
+        {
+          customId: interaction.customId,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        'Modal handler error',
+      )
+
+      const errorMessage = 'An error occurred while executing this action.'
+      try {
+        if (interaction.replied || interaction.deferred) {
+          await interaction.editReply({ content: errorMessage, components: [] })
+        } else {
+          await interaction.reply({ content: errorMessage, flags: MessageFlags.Ephemeral })
+        }
+      } catch {
+        // Reply already sent or interaction expired — nothing we can do.
+      }
+    }
+  }
+
   /**
    * Attach a single `interactionCreate` listener to the given client that
    * forwards chat-input commands to {@link dispatch}.
@@ -116,6 +160,11 @@ export class InteractionRouter {
 
       if (interaction.isButton()) {
         void this.dispatchButton(interaction)
+        return
+      }
+
+      if (interaction.isModalSubmit()) {
+        void this.dispatchModal(interaction)
       }
     })
   }

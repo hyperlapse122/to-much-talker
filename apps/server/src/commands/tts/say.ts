@@ -1,7 +1,6 @@
 import { getVoiceConnection } from '@discordjs/voice'
 import { synthesizeStream } from '@to-much-talker/ai'
-import { MessageFlags } from 'discord.js'
-import type { ChatInputCommandInteraction } from 'discord.js'
+import { type ChatInputCommandInteraction, MessageFlags } from 'discord.js'
 import type { Logger } from '../../logger.js'
 import { getOrCreatePlayer } from '../../voice/index.js'
 import type { CommandContext } from '../context.js'
@@ -186,7 +185,10 @@ export async function enqueueTtsText(
 
   const connection = getVoiceConnection(params.guildId)
   if (connection === undefined) {
-    return { accepted: false, reason: 'Use `/tts join` before sending TTS messages.' }
+    return {
+      accepted: false,
+      reason: 'Use `/tts join` before sending TTS messages.',
+    }
   }
 
   const runtime = await getGuildTtsRuntime(ctx, params.guildId)
@@ -211,7 +213,10 @@ export async function enqueueTtsText(
   playbackQueues.set(params.guildId, task)
   void task.catch((error: unknown) => {
     log.error(
-      { guildId: params.guildId, error: error instanceof Error ? error.message : String(error) },
+      {
+        guildId: params.guildId,
+        error: error instanceof Error ? error.message : String(error),
+      },
       'Queued TTS playback failed',
     )
   })
@@ -242,7 +247,7 @@ async function playQueuedText(
   if (connection === undefined) return
 
   const synthStartMs = nowMs()
-  const preset = await resolveUserTtsPreset(ctx, params.userId, runtime)
+  const preset = await resolveUserTtsPreset(ctx, params.guildId, params.userId, runtime)
   const result = await synthesizeWithFallback(log, runtime, {
     guildId: params.guildId,
     selectedPreset: preset,
@@ -385,5 +390,8 @@ async function synthesizeForPreset(
     voice: request.voice,
   })
   if (!result.ok) return result
-  return { ok: true, value: { audio: result.value.audio, format: request.format } }
+  return {
+    ok: true,
+    value: { audio: result.value.audio, format: request.format },
+  }
 }

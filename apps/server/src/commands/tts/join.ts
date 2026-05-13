@@ -1,7 +1,7 @@
 import { eq, pg, sqlite } from '@to-much-talker/db'
-import { ChannelType, MessageFlags } from 'discord.js'
 import type { ChatInputCommandInteraction } from 'discord.js'
-import { joinVoice } from '../../voice/index.js'
+import { ChannelType, MessageFlags } from 'discord.js'
+import { joinVoice, leaveVoice } from '../../voice/index.js'
 import type { CommandContext } from '../context.js'
 
 /**
@@ -53,8 +53,10 @@ export async function handleTtsJoin(
     return
   }
 
+  let joinedVoice = false
   try {
     await joinVoice(guild, voiceChannel)
+    joinedVoice = true
     await bindTextChannel(
       ctx,
       guild.id,
@@ -74,6 +76,9 @@ export async function handleTtsJoin(
       { error: error instanceof Error ? error.message : String(error) },
       'Failed to join voice channel',
     )
+    if (joinedVoice) {
+      leaveVoice(guild.id)
+    }
     await interaction.reply({
       content: 'Failed to join voice channel. Check bot permissions.',
       flags: MessageFlags.Ephemeral,
