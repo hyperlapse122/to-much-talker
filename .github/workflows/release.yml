@@ -47,8 +47,10 @@ jobs:
         if: steps.detect.outputs.has_changesets == 'true'
         run: yarn changeset version
 
-      - name: Commit version bump, tag, and push to main
+      - name: Commit version bump, tag, push to main, and trigger docker build
         if: steps.detect.outputs.has_changesets == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -65,3 +67,9 @@ jobs:
           git tag "v${VERSION}"
           git push origin main
           git push origin "v${VERSION}"
+
+          # `GITHUB_TOKEN` pushes do not trigger another workflow run, so the
+          # Docker workflow's `tags: ['v*']` listener does not fire on the tag
+          # we just pushed. Kick it explicitly via workflow_dispatch (which is
+          # exempt from the no-recursion rule).
+          gh workflow run docker.yml --ref "v${VERSION}"
