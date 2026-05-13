@@ -1,83 +1,76 @@
-import { getVoiceConnection } from "@discordjs/voice";
-import { eq, pg, sqlite } from "@to-much-talker/db";
-import { type Client, Events, type Message } from "discord.js";
-import { and } from "drizzle-orm";
-import type { CommandContext } from "../commands/context.js";
-import { enqueueTtsText } from "../commands/tts/say.js";
+import { getVoiceConnection } from '@discordjs/voice'
+import { eq, pg, sqlite } from '@to-much-talker/db'
+import { type Client, Events, type Message } from 'discord.js'
+import { and } from 'drizzle-orm'
+import type { CommandContext } from '../commands/context.js'
+import { enqueueTtsText } from '../commands/tts/say.js'
 
 export function attachMessageReader(client: Client, ctx: CommandContext): void {
-	const log = ctx.logger.child({ component: "message-reader" });
+  const log = ctx.logger.child({ component: 'message-reader' })
 
-	client.on(Events.MessageCreate, (message) => {
-		void handleMessage(message, ctx).catch((error: unknown) => {
-			log.error(
-				{ error: error instanceof Error ? error.message : String(error) },
-				"Failed to queue message for TTS",
-			);
-		});
-	});
+  client.on(Events.MessageCreate, (message) => {
+    void handleMessage(message, ctx).catch((error: unknown) => {
+      log.error(
+        { error: error instanceof Error ? error.message : String(error) },
+        'Failed to queue message for TTS',
+      )
+    })
+  })
 }
 
-async function handleMessage(
-	message: Message,
-	ctx: CommandContext,
-): Promise<void> {
-	const receivedAtMs = performance.now();
-	if (message.author.bot) return;
-	if (message.guildId === null) return;
-	if (message.content.trim().length === 0) return;
+async function handleMessage(message: Message, ctx: CommandContext): Promise<void> {
+  const receivedAtMs = performance.now()
+  if (message.author.bot) return
+  if (message.guildId === null) return
+  if (message.content.trim().length === 0) return
 
-	const connection = getVoiceConnection(message.guildId);
-	const voiceChannelId = connection?.joinConfig.channelId;
-	if (voiceChannelId === undefined || voiceChannelId === null) return;
+  const connection = getVoiceConnection(message.guildId)
+  const voiceChannelId = connection?.joinConfig.channelId
+  if (voiceChannelId === undefined || voiceChannelId === null) return
 
-	const boundTextChannelId = await loadBoundTextChannelId(
-		ctx,
-		message.guildId,
-		voiceChannelId,
-	);
-	if (boundTextChannelId !== message.channelId) return;
+  const boundTextChannelId = await loadBoundTextChannelId(ctx, message.guildId, voiceChannelId)
+  if (boundTextChannelId !== message.channelId) return
 
-	const result = await enqueueTtsText(ctx, {
-		guildId: message.guildId,
-		channelId: message.channelId,
-		userId: message.author.id,
-		text: message.content,
-		source: "message",
-		receivedAtMs,
-	});
+  const result = await enqueueTtsText(ctx, {
+    guildId: message.guildId,
+    channelId: message.channelId,
+    userId: message.author.id,
+    text: message.content,
+    source: 'message',
+    receivedAtMs,
+  })
 
-	if (!result.accepted) return;
+  if (!result.accepted) return
 }
 
 async function loadBoundTextChannelId(
-	ctx: CommandContext,
-	guildId: string,
-	voiceChannelId: string,
+  ctx: CommandContext,
+  guildId: string,
+  voiceChannelId: string,
 ): Promise<string | null> {
-	if (ctx.db.dialect === "sqlite") {
-		const row = ctx.db.db
-			.select({ boundTextChannelId: sqlite.channelSettings.boundTextChannelId })
-			.from(sqlite.channelSettings)
-			.where(
-				and(
-					eq(sqlite.channelSettings.guildId, guildId),
-					eq(sqlite.channelSettings.channelId, voiceChannelId),
-				),
-			)
-			.get();
-		return row?.boundTextChannelId ?? null;
-	}
+  if (ctx.db.dialect === 'sqlite') {
+    const row = ctx.db.db
+      .select({ boundTextChannelId: sqlite.channelSettings.boundTextChannelId })
+      .from(sqlite.channelSettings)
+      .where(
+        and(
+          eq(sqlite.channelSettings.guildId, guildId),
+          eq(sqlite.channelSettings.channelId, voiceChannelId),
+        ),
+      )
+      .get()
+    return row?.boundTextChannelId ?? null
+  }
 
-	const rows = await ctx.db.db
-		.select({ boundTextChannelId: pg.channelSettings.boundTextChannelId })
-		.from(pg.channelSettings)
-		.where(
-			and(
-				eq(pg.channelSettings.guildId, guildId),
-				eq(pg.channelSettings.channelId, voiceChannelId),
-			),
-		)
-		.limit(1);
-	return rows[0]?.boundTextChannelId ?? null;
+  const rows = await ctx.db.db
+    .select({ boundTextChannelId: pg.channelSettings.boundTextChannelId })
+    .from(pg.channelSettings)
+    .where(
+      and(
+        eq(pg.channelSettings.guildId, guildId),
+        eq(pg.channelSettings.channelId, voiceChannelId),
+      ),
+    )
+    .limit(1)
+  return rows[0]?.boundTextChannelId ?? null
 }
