@@ -63,9 +63,6 @@ export async function resolveUserTtsModel(
 ): Promise<string> {
   const preferredModel = await loadUserPreferredModel(userId, ctx)
   if (preferredModel === null) return runtime.defaultModel
-  if (SUPPORTED_TTS_MODELS.includes(preferredModel as (typeof SUPPORTED_TTS_MODELS)[number])) {
-    return preferredModel
-  }
   return runtime.allowedModels.includes(preferredModel) ? preferredModel : runtime.defaultModel
 }
 
@@ -76,7 +73,9 @@ export async function resolveUserTtsPreset(
 ): Promise<TtsVoicePreset> {
   const preferredVoice = await loadUserPreferredVoice(userId, ctx)
   const preferredPreset = preferredVoice === null ? null : findVoicePresetByVoice(preferredVoice)
-  if (preferredPreset !== null) return preferredPreset
+  if (preferredPreset !== null && runtime.allowedModels.includes(preferredPreset.model)) {
+    return preferredPreset
+  }
 
   const model = await resolveUserTtsModel(ctx, userId, runtime)
   return defaultVoicePresetForModel(model)
