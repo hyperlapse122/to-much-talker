@@ -16,7 +16,6 @@ test('home page renders migrated markdown content and navigation', async ({ page
 
   await page.getByRole('link', { name: 'Get Started' }).click()
   await expect(page).toHaveURL(/\/guide\/setup$/)
-  await expect(
-    page.locator('article > header').getByRole('heading', { level: 1, name: 'Setup Guide' }),
-  ).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Setup Guide' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1)
 })
