@@ -1,5 +1,26 @@
-import { createLazyFileRoute } from '@tanstack/react-router'
+import { createLazyFileRoute, Link } from '@tanstack/react-router'
+import type { JSX } from 'react'
 
-import { NotFoundPage } from '@/components/NotFoundPage.js'
+import { Markdown, type LinkComponentProps } from '@/components/Markdown.js'
 
-export const Route = createLazyFileRoute('/$')({ component: NotFoundPage })
+import { Route as SplatRoute } from './$.js'
+
+function MarkdownLink({ to, className, children }: LinkComponentProps): JSX.Element {
+  return (
+    <Link className={className} to={to}>
+      {children}
+    </Link>
+  )
+}
+
+function DocPage(): JSX.Element {
+  const doc = SplatRoute.useLoaderData()
+
+  return (
+    <article>
+      <Markdown linkComponent={MarkdownLink} markup={doc.markup} />
+    </article>
+  )
+}
+
+export const Route = createLazyFileRoute('/$')({ component: DocPage })
