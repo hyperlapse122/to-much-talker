@@ -12,12 +12,16 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          # Default GITHUB_TOKEN. Pushing back to main from inside this
+          # workflow does NOT retrigger Release (or any other workflow), so
+          # there is no recursion risk. See:
+          #   https://docs.github.com/en/actions/security-guides/automatic-token-authentication
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -28,11 +32,36 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
-      - name: Create Release PR or Publish
-        uses: changesets/action@63a615b9cd06ba9a3e6d13796c7fbcb080a60a0b # v1
-        with:
-          publish: yarn changeset publish
-          version: yarn changeset version
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Detect unreleased changesets
+        id: detect
+        run: |
+          # Count `.changeset/*.md` excluding the README.
+          count=$(find .changeset -maxdepth 1 -type f -name '*.md' ! -name 'README.md' | wc -l)
+          if [ "$count" -gt 0 ]; then
+            echo "has_changesets=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changesets=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Version packages
+        if: steps.detect.outputs.has_changesets == 'true'
+        run: yarn changeset version
+
+      - name: Commit version bump, tag, and push to main
+        if: steps.detect.outputs.has_changesets == 'true'
+        run: |
+          set -euo pipefail
+
+          # The server package's version is the canonical monorepo tag. All
+          # public packages are kept in lockstep via the changeset; this
+          # assumption is fine for a private monorepo with a single shipping
+          # artifact (the Discord bot).
+          VERSION=$(node -p "require('./apps/server/package.json').version")
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "chore(release): version packages to v${VERSION}"
+          git tag "v${VERSION}"
+          git push origin main
+          git push origin "v${VERSION}"
