@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "start": "node --env-file=.env dist/index.js start",
-    "dev": "yarn build && node --env-file=.env dist/index.js start",
+    "dev": "node dev.mjs",
     "key:gen": "yarn build && node dist/index.js key gen",
     "migrate": "yarn build && node --env-file=.env dist/index.js migrate",
     "cli": "node dist/index.js"
