@@ -26,6 +26,26 @@ const isValidDbUrl = (s: string): boolean =>
 const isAutoOrNumeric = (s: string): boolean => s === 'auto' || /^\d+$/.test(s)
 
 /**
+ * Coerce empty string values (e.g. `DATABASE_URL=` in `.env`) to `undefined`
+ * so that `.default(...)` clauses below actually fire.
+ *
+ * Without this, an empty-but-present env var (which is what `docker run
+ * --env-file` and Node's `--env-file` produce for lines like `KEY=`) is
+ * passed to zod as `""`. `.default()` only triggers on `undefined`, so the
+ * empty string falls through to the downstream validator (e.g. the
+ * `DATABASE_URL` prefix check) and fails. The `.env.example` template
+ * deliberately ships these lines empty, so the schema must tolerate them.
+ */
+const emptyStringToUndefined = (val: unknown): unknown => {
+  if (typeof val !== 'object' || val === null) return val
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+    out[k] = v === '' ? undefined : v
+  }
+  return out
+}
+
+/**
  * Environment variable schema.
  *
  * REQUIRED vars are typed as `z.string()` with validation (no default).
@@ -35,84 +55,90 @@ const isAutoOrNumeric = (s: string): boolean => s === 'auto' || /^\d+$/.test(s)
  * Numbers are coerced via `.transform()` + `.pipe(z.number())`.
  *
  * The schema strips unknown keys (default zod behavior), so passing
- * `process.env` directly is safe.
+ * `process.env` directly is safe. Empty string values are coerced to
+ * `undefined` upstream so that `.default()` clauses fire correctly.
  */
-export const EnvSchema = z.object({
-  // --- REQUIRED ---
-  DISCORD_TOKEN: z.string().min(1, 'DISCORD_TOKEN must not be empty'),
+export const EnvSchema = z.preprocess(
+  emptyStringToUndefined,
+  z.object({
+    // --- REQUIRED ---
+    DISCORD_TOKEN: z.string().min(1, 'DISCORD_TOKEN must not be empty'),
 
-  DISCORD_CLIENT_ID: z
-    .string()
-    .regex(SNOWFLAKE, 'DISCORD_CLIENT_ID must be a valid Discord snowflake (17-20 digits)'),
+    DISCORD_CLIENT_ID: z
+      .string()
+      .regex(SNOWFLAKE, 'DISCORD_CLIENT_ID must be a valid Discord snowflake (17-20 digits)'),
 
-  MASTER_ENC_KEY: z
-    .string()
-    .refine(isBase64Of32Bytes, 'MASTER_ENC_KEY must be a base64-encoded 32-byte key'),
+    MASTER_ENC_KEY: z
+      .string()
+      .refine(isBase64Of32Bytes, 'MASTER_ENC_KEY must be a base64-encoded 32-byte key'),
 
-  // --- OPTIONAL with defaults ---
-  MASTER_ENC_KEY_VERSION: z
-    .string()
-    .default('1')
-    .transform((s) => parseInt(s, 10))
-    .pipe(z.number().int().positive('MASTER_ENC_KEY_VERSION must be a positive integer')),
+    // --- OPTIONAL with defaults ---
+    MASTER_ENC_KEY_VERSION: z
+      .string()
+      .default('1')
+      .transform((s) => parseInt(s, 10))
+      .pipe(z.number().int().positive('MASTER_ENC_KEY_VERSION must be a positive integer')),
 
-  DATABASE_URL: z
-    .string()
-    .default('sqlite://./data/bot.db')
-    .refine(
-      isValidDbUrl,
-      'DATABASE_URL must start with sqlite://, file:, postgres://, or postgresql://',
-    ),
+    DATABASE_URL: z
+      .string()
+      .default('sqlite://./data/bot.db')
+      .refine(
+        isValidDbUrl,
+        'DATABASE_URL must start with sqlite://, file:, postgres://, or postgresql://',
+      ),
 
-  LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent']).default('info'),
+    LOG_LEVEL: z
+      .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent'])
+      .default('info'),
 
-  TOTAL_SHARDS: z
-    .string()
-    .default('auto')
-    .refine(isAutoOrNumeric, 'TOTAL_SHARDS must be "auto" or a numeric string'),
+    TOTAL_SHARDS: z
+      .string()
+      .default('auto')
+      .refine(isAutoOrNumeric, 'TOTAL_SHARDS must be "auto" or a numeric string'),
 
-  CLUSTER_COUNT: z
-    .string()
-    .default('1')
-    .transform((s) => parseInt(s, 10))
-    .pipe(z.number().int().positive('CLUSTER_COUNT must be a positive integer')),
+    CLUSTER_COUNT: z
+      .string()
+      .default('1')
+      .transform((s) => parseInt(s, 10))
+      .pipe(z.number().int().positive('CLUSTER_COUNT must be a positive integer')),
 
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('production'),
+    NODE_ENV: z.enum(['development', 'production', 'test']).default('production'),
 
-  IDLE_TEXT_INACTIVITY_MS: z
-    .string()
-    .default('300000')
-    .transform((s) => parseInt(s, 10))
-    .pipe(z.number().int().positive('IDLE_TEXT_INACTIVITY_MS must be a positive integer')),
+    IDLE_TEXT_INACTIVITY_MS: z
+      .string()
+      .default('300000')
+      .transform((s) => parseInt(s, 10))
+      .pipe(z.number().int().positive('IDLE_TEXT_INACTIVITY_MS must be a positive integer')),
 
-  IDLE_LEAVE_ON_EMPTY: z.string().default('true').transform(isTruthy),
+    IDLE_LEAVE_ON_EMPTY: z.string().default('true').transform(isTruthy),
 
-  PLAYGROUND_PORT: z
-    .string()
-    .default('5173')
-    .transform((s) => parseInt(s, 10))
-    .pipe(
-      z
-        .number()
-        .int()
-        .min(1, 'PLAYGROUND_PORT must be >= 1')
-        .max(65535, 'PLAYGROUND_PORT must be <= 65535'),
-    ),
+    PLAYGROUND_PORT: z
+      .string()
+      .default('5173')
+      .transform((s) => parseInt(s, 10))
+      .pipe(
+        z
+          .number()
+          .int()
+          .min(1, 'PLAYGROUND_PORT must be >= 1')
+          .max(65535, 'PLAYGROUND_PORT must be <= 65535'),
+      ),
 
-  DOCS_PORT: z
-    .string()
-    .default('4000')
-    .transform((s) => parseInt(s, 10))
-    .pipe(
-      z.number().int().min(1, 'DOCS_PORT must be >= 1').max(65535, 'DOCS_PORT must be <= 65535'),
-    ),
+    DOCS_PORT: z
+      .string()
+      .default('4000')
+      .transform((s) => parseInt(s, 10))
+      .pipe(
+        z.number().int().min(1, 'DOCS_PORT must be >= 1').max(65535, 'DOCS_PORT must be <= 65535'),
+      ),
 
-  PLAYGROUND_MOCK_OPENROUTER: z.string().default('false').transform(isTruthy),
+    PLAYGROUND_MOCK_OPENROUTER: z.string().default('false').transform(isTruthy),
 
-  PLAYGROUND_WRITE_ENABLED: z.string().default('false').transform(isTruthy),
+    PLAYGROUND_WRITE_ENABLED: z.string().default('false').transform(isTruthy),
 
-  PLAYGROUND_ALLOW_ALL: z.string().default('false').transform(isTruthy),
-})
+    PLAYGROUND_ALLOW_ALL: z.string().default('false').transform(isTruthy),
+  }),
+)
 
 /**
  * The fully-validated, parsed config object.
