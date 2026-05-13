@@ -68,6 +68,16 @@ jobs:
           git push origin main
           git push origin "v${VERSION}"
 
+          # Extract the just-versioned `## X.X.X` block from the server
+          # CHANGELOG (mirrors the changeset body the user wrote) and publish
+          # it as the GitHub Release body. AWK exits at the second `##` so we
+          # only ship the most recent version's notes.
+          awk '/^## / { if (++c > 1) exit } c == 1' apps/server/CHANGELOG.md > /tmp/release-notes.md
+          gh release create "v${VERSION}" \
+            --title "v${VERSION}" \
+            --notes-file /tmp/release-notes.md \
+            --verify-tag
+
           # `GITHUB_TOKEN` pushes do not trigger another workflow run, so the
           # Docker workflow's `tags: ['v*']` listener does not fire on the tag
           # we just pushed. Kick it explicitly via workflow_dispatch (which is
