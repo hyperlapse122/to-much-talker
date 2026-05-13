@@ -1,5 +1,6 @@
 import { rm } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { createIndex } from 'pagefind'
 
 interface DocRecord {
@@ -12,7 +13,7 @@ interface DocRecord {
 
 async function loadDocs(): Promise<DocRecord[]> {
   const generatedPath = resolve(process.cwd(), '.content-collections/generated/index.js')
-  const generated = (await import(generatedPath)) as { allDocs: DocRecord[] }
+  const generated = (await import(pathToFileURL(generatedPath).href)) as { allDocs: DocRecord[] }
 
   return generated.allDocs
 }
