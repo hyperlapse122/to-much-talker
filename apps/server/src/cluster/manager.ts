@@ -30,12 +30,15 @@ export async function runClusterManager(config: Config): Promise<void> {
   const totalShards = config.TOTAL_SHARDS === 'auto' ? 'auto' : parseInt(config.TOTAL_SHARDS, 10)
   const workerPath = join(currentDir, '..', '..', 'dist', 'index.js')
 
+  // Workers inherit `process.env` from this manager process by default, so
+  // there is no need to pass `--env-file=.env` via `execArgv`. The previous
+  // implementation did, which broke production containers (no `.env` file
+  // exists inside the image — env vars come from `docker run --env-file`).
   const manager = new ClusterManager(workerPath, {
     totalShards,
     totalClusters: config.CLUSTER_COUNT,
     mode: 'process',
     token: config.DISCORD_TOKEN,
-    execArgv: ['--env-file=.env'],
   })
 
   manager.on('clusterCreate', (cluster) => {
