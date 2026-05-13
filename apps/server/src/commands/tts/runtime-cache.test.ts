@@ -35,7 +35,10 @@ function buildCtx(row: {
 }
 
 function buildGuildCtx(
-  rows: Record<string, { readonly preferredModel?: string | null; readonly preferredVoice?: string | null }>,
+  rows: Record<
+    string,
+    { readonly preferredModel?: string | null; readonly preferredVoice?: string | null }
+  >,
 ): CommandContext {
   const db = {
     dialect: 'sqlite',
@@ -302,7 +305,9 @@ describe('TTS runtime API key decryption', () => {
       modelSettings: undefined,
     })
 
-    await expect(getGuildTtsRuntime(ctx, guildId)).rejects.toThrow('Missing API key encryption key version 8')
+    await expect(getGuildTtsRuntime(ctx, guildId)).rejects.toThrow(
+      'Missing API key encryption key version 8',
+    )
 
     apiKey = encryptedApiKey(CURRENT_MASTER_KEY, 7)
     await expect(getGuildTtsRuntime(ctx, guildId)).resolves.not.toBeNull()
