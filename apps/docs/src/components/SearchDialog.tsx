@@ -38,6 +38,18 @@ type SearchStatus = 'idle' | 'loading' | 'ready' | 'unavailable'
 
 const minimumQueryLength = 2
 const searchDebounceMs = 200
+const focusableSelector = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(', ')
+
+function getFocusableElements(container: HTMLElement): HTMLElement[] {
+  return Array.from(container.querySelectorAll<HTMLElement>(focusableSelector))
+}
 
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
@@ -64,6 +76,7 @@ async function loadPagefind(): Promise<PagefindModule | null> {
 
 export function SearchDialog({ open, onOpenChange }: SearchDialogProps): JSX.Element | null {
   const inputRef = useRef<HTMLInputElement>(null)
+  const dialogRef = useRef<HTMLElement>(null)
   const pagefindRef = useRef<PagefindModule | null>(null)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
@@ -111,6 +124,36 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps): JSX.Ele
     function handleKeyDown(event: KeyboardEvent): void {
       if (event.key === 'Escape') {
         onOpenChange(false)
+        return
+      }
+
+      if (event.key !== 'Tab') {
+        return
+      }
+
+      const dialog = dialogRef.current
+      if (dialog === null) {
+        return
+      }
+
+      const focusableElements = getFocusableElements(dialog)
+      const firstElement = focusableElements.at(0)
+      const lastElement = focusableElements.at(-1)
+
+      if (firstElement === undefined || lastElement === undefined) {
+        event.preventDefault()
+        return
+      }
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault()
+        lastElement.focus()
+        return
+      }
+
+      if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault()
+        firstElement.focus()
       }
     }
 
@@ -188,6 +231,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps): JSX.Ele
         aria-label="Search"
         aria-modal="true"
         className="relative w-full max-w-2xl overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-2xl"
+        ref={dialogRef}
         role="dialog"
       >
         <div className="flex items-center gap-3 border-border border-b p-4">

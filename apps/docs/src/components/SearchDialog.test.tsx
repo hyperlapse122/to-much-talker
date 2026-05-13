@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SearchDialog } from './SearchDialog.js'
 
 const mountedRoots: Root[] = []
+const mountedContainers: HTMLElement[] = []
 
 function renderSearchDialog({
   open,
@@ -13,6 +14,8 @@ function renderSearchDialog({
   onOpenChange?: (open: boolean) => void
 }): { container: HTMLElement; onOpenChange: (open: boolean) => void } {
   const container = document.createElement('div')
+  document.body.append(container)
+  mountedContainers.push(container)
   const root = createRoot(container)
   mountedRoots.push(root)
 
@@ -41,6 +44,11 @@ describe('SearchDialog', () => {
       })
     }
     mountedRoots.length = 0
+
+    for (const container of mountedContainers) {
+      container.remove()
+    }
+    mountedContainers.length = 0
   })
 
   it('renders null when closed', () => {
@@ -87,6 +95,31 @@ describe('SearchDialog', () => {
     })
 
     expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it('keeps tab focus inside the dialog', () => {
+    const { container } = renderSearchDialog({ open: true })
+    const input = queryRequired<HTMLInputElement>(container, 'input[role="combobox"]')
+    const closeButton = queryRequired<HTMLButtonElement>(
+      container,
+      'button[aria-label="Close search"]',
+    )
+
+    act(() => {
+      closeButton.focus()
+      window.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Tab' }))
+    })
+
+    expect(input).toHaveFocus()
+
+    act(() => {
+      input.focus()
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { bubbles: true, key: 'Tab', shiftKey: true }),
+      )
+    })
+
+    expect(closeButton).toHaveFocus()
   })
 
   it('closes when the backdrop is clicked', () => {
