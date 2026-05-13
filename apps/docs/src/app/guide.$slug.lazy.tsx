@@ -18,11 +18,6 @@ function GuidePage(): JSX.Element {
 
   return (
     <article>
-      <header className="mb-8 space-y-3">
-        <h1 className="text-4xl font-semibold tracking-tight text-foreground">{guide.title}</h1>
-        <p className="text-lg text-muted-foreground">{guide.description}</p>
-      </header>
-
       <Markdown linkComponent={MarkdownLink} markup={guide.markup} />
     </article>
   )
