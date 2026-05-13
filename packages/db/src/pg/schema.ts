@@ -1,13 +1,13 @@
 import {
-  pgTable,
-  text,
-  integer,
-  boolean,
-  jsonb,
   bigint,
-  timestamp,
+  boolean,
+  integer,
+  jsonb,
+  pgTable,
   primaryKey,
   serial,
+  text,
+  timestamp,
 } from 'drizzle-orm/pg-core'
 
 export const guildSettings = pgTable('guild_settings', {
@@ -47,14 +47,21 @@ export const channelSettings = pgTable(
   }),
 )
 
-export const userSettings = pgTable('user_settings', {
-  userId: text('user_id').primaryKey(),
-  preferredModel: text('preferred_model'),
-  preferredVoice: text('preferred_voice'),
-  preferredLocale: text('preferred_locale'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-})
+export const userSettings = pgTable(
+  'user_settings',
+  {
+    guildId: text('guild_id').notNull(),
+    userId: text('user_id').notNull(),
+    preferredModel: text('preferred_model'),
+    preferredVoice: text('preferred_voice'),
+    preferredLocale: text('preferred_locale'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.guildId, t.userId] }),
+  }),
+)
 
 export const settingAuditLog = pgTable('setting_audit_log', {
   id: serial('id').primaryKey(),

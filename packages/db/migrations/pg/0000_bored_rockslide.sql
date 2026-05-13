@@ -58,10 +58,12 @@ CREATE TABLE "tts_message_log" (
 );
 --> statement-breakpoint
 CREATE TABLE "user_settings" (
-	"user_id" text PRIMARY KEY NOT NULL,
+	"guild_id" text NOT NULL,
+	"user_id" text NOT NULL,
 	"preferred_model" text,
 	"preferred_voice" text,
 	"preferred_locale" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "user_settings_guild_id_user_id_pk" PRIMARY KEY("guild_id","user_id")
 );

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core'
+import { integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
 export const guildSettings = sqliteTable('guild_settings', {
   guildId: text('guild_id').primaryKey(),
@@ -50,18 +50,25 @@ export const channelSettings = sqliteTable(
   }),
 )
 
-export const userSettings = sqliteTable('user_settings', {
-  userId: text('user_id').primaryKey(),
-  preferredModel: text('preferred_model'),
-  preferredVoice: text('preferred_voice'),
-  preferredLocale: text('preferred_locale'),
-  createdAt: integer('created_at', { mode: 'timestamp' })
-    .notNull()
-    .$defaultFn(() => new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' })
-    .notNull()
-    .$defaultFn(() => new Date()),
-})
+export const userSettings = sqliteTable(
+  'user_settings',
+  {
+    guildId: text('guild_id').notNull(),
+    userId: text('user_id').notNull(),
+    preferredModel: text('preferred_model'),
+    preferredVoice: text('preferred_voice'),
+    preferredLocale: text('preferred_locale'),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.guildId, t.userId] }),
+  }),
+)
 
 export const settingAuditLog = sqliteTable('setting_audit_log', {
   id: integer('id').primaryKey({ autoIncrement: true }),

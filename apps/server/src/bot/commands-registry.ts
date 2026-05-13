@@ -20,7 +20,7 @@ const log = logger.child({ component: 'commands-registry' })
  * for the scaffold we register English-only strings. The `settings`
  * subcommand here is a stub — its option tree will be filled by Task 21.
  */
-function buildTtsCommand(): SlashCommandBuilder {
+export function buildTtsCommand(): SlashCommandBuilder {
   const tts = new SlashCommandBuilder().setName('tts').setDescription('Text-to-speech commands')
   const userSettings = new SlashCommandSubcommandGroupBuilder()
     .setName('user')
@@ -82,14 +82,7 @@ function buildTtsCommand(): SlashCommandBuilder {
       .addSubcommand(
         new SlashCommandSubcommandBuilder()
           .setName('api-key')
-          .setDescription('Set the OpenRouter API key for this server')
-          .addStringOption((opt) =>
-            opt
-              .setName('key')
-              .setDescription('OpenRouter API key')
-              .setRequired(true)
-              .setMinLength(1),
-          ),
+          .setDescription('Set the OpenRouter API key for this server'),
       ),
   )
 

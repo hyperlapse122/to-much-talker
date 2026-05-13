@@ -7,7 +7,6 @@ import type { Db } from './client.js'
 import { isPg, isSqlite } from './client.js'
 
 const currentDir = dirname(fileURLToPath(import.meta.url))
-const migrationsDir = resolveMigrationsDir()
 
 function resolveMigrationsDir(): string {
   const candidates = [
@@ -31,11 +30,13 @@ function resolveMigrationsDir(): string {
 
 export async function runMigrations(db: Db): Promise<void> {
   if (isSqlite(db)) {
+    const migrationsDir = resolveMigrationsDir()
     migrate(db.db, { migrationsFolder: join(migrationsDir, 'sqlite') })
     return
   }
 
   if (isPg(db)) {
+    const migrationsDir = resolveMigrationsDir()
     await pgMigrate(db.db, { migrationsFolder: join(migrationsDir, 'pg') })
     return
   }
