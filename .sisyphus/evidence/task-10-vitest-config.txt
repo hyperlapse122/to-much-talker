@@ -1,6 +1,0 @@
-Created apps/docs/vitest.config.ts with jsdom, setupFiles, coverage, and 70% thresholds.
-Created apps/docs/src/test-setup.ts with @testing-library/jest-dom/vitest import.
-Verification:
-- lsp_diagnostics: clean on both changed files.
-- test: `yarn workspace @to-much-talker/docs test` failed because there are no test files yet.
-- build: `yarn workspace @to-much-talker/docs build` failed in existing docs scaffolding (`src/app` missing, content-collections import unresolved).

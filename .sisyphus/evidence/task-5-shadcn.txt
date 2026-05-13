@@ -1,1 +1,0 @@
-Created `apps/docs/components.json` with New York / zinc / cssVariables config and `apps/docs/src/lib/utils.ts` with named `cn` helper.

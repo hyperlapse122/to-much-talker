@@ -1,2 +1,0 @@
-Branch: feature/rebuild-docs
-Cleanup: removed apps/docs/src, apps/docs/dist, apps/docs/tests, and legacy top-level docs files; preserved content/ and playwright.config.ts.
