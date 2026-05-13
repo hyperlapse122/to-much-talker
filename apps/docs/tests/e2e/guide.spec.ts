@@ -28,7 +28,9 @@ test('top-level markdown docs route through the catch-all route', async ({ page 
   await page.goto('/faq')
 
   await expect(page.getByRole('heading', { level: 1, name: 'FAQ' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Can I use my own OpenRouter key?' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Can I use my own OpenRouter key?' }),
+  ).toBeVisible()
   await expect(
     page.getByRole('navigation', { name: 'Documentation' }).getByRole('link', { name: 'FAQ' }),
   ).toBeVisible()
