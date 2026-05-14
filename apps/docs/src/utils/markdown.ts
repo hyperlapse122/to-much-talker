@@ -20,7 +20,7 @@ export interface MarkdownHeading {
 
 export interface MarkdownResult {
   markup: string
-  headings: Array<MarkdownHeading>
+  headings: MarkdownHeading[]
 }
 
 const headingTagPattern = /^h([1-6])$/u
@@ -42,7 +42,7 @@ function getElementId(node: Element): string | undefined {
   return typeof id === 'string' ? id : undefined
 }
 
-function createHeadingExtractor(headings: Array<MarkdownHeading>): Plugin<[], Root> {
+function createHeadingExtractor(headings: MarkdownHeading[]): Plugin<[], Root> {
   return () => (tree: Root) => {
     visit(tree, 'element', (node: Element) => {
       if (!isHeadingElement(node)) {
@@ -62,7 +62,7 @@ function createHeadingExtractor(headings: Array<MarkdownHeading>): Plugin<[], Ro
 }
 
 export async function renderMarkdown(content: string): Promise<MarkdownResult> {
-  const headings: Array<MarkdownHeading> = []
+  const headings: MarkdownHeading[] = []
 
   const file = await unified()
     .use(remarkParse)
