@@ -1,9 +1,9 @@
+import type { VoiceConnection } from '@discordjs/voice'
 import {
   entersState,
   getVoiceConnection,
   joinVoiceChannel,
   VoiceConnectionStatus,
-  type VoiceConnection,
 } from '@discordjs/voice'
 import type { Guild, StageChannel, VoiceChannel } from 'discord.js'
 import { logger } from '../logger.js'
@@ -18,18 +18,35 @@ export async function joinVoice(
   const existing = getVoiceConnection(guild.id)
 
   if (existing !== undefined && existing.joinConfig.channelId === channel.id) {
-    log.debug({ guildId: guild.id, channelId: channel.id }, 'Reusing existing voice connection')
+    log.info({ guildId: guild.id, channelId: channel.id }, 'Reusing existing voice connection')
     return existing
   }
 
   if (existing !== undefined) {
+    log.info(
+      {
+        guildId: guild.id,
+        previousChannelId: existing.joinConfig.channelId,
+        nextChannelId: channel.id,
+      },
+      'Destroying previous voice connection before join',
+    )
     existing.destroy()
   }
 
+  log.info({ guildId: guild.id, channelId: channel.id }, 'Joining voice channel')
   const connection = joinVoiceChannel({
     channelId: channel.id,
     guildId: guild.id,
     adapterCreator: guild.voiceAdapterCreator,
+  })
+
+  connection.on(VoiceConnectionStatus.Ready, () => {
+    log.info({ guildId: guild.id, channelId: channel.id }, 'Voice connection ready')
+  })
+
+  connection.on(VoiceConnectionStatus.Connecting, () => {
+    log.debug({ guildId: guild.id, channelId: channel.id }, 'Voice connection connecting')
   })
 
   connection.on(VoiceConnectionStatus.Disconnected, () => {
@@ -43,6 +60,7 @@ export function leaveVoice(guildId: string): void {
   const connection = getVoiceConnection(guildId)
 
   if (connection !== undefined) {
+    log.info({ guildId, channelId: connection.joinConfig.channelId }, 'Leaving voice channel')
     connection.destroy()
   }
 }
