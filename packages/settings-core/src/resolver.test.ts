@@ -29,6 +29,24 @@ describe('resolveSettings', () => {
     expect(resolved.maxChars).toBe(100)
   })
 
+  it('clamps server maxChars to the Discord slash option ceiling', () => {
+    const resolved = resolveSettings({
+      server: { maxChars: 3000 },
+      channel: null,
+      user: null,
+    })
+    expect(resolved.maxChars).toBe(2000)
+  })
+
+  it('clamps maxChars to at least one character', () => {
+    const resolved = resolveSettings({
+      server: { maxChars: -5 },
+      channel: null,
+      user: null,
+    })
+    expect(resolved.maxChars).toBe(1)
+  })
+
   it('allows model override if in allowed list', () => {
     const resolved = resolveSettings({
       server: {

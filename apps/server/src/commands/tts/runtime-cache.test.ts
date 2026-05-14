@@ -25,6 +25,7 @@ interface ApiKeyRow {
 interface ModelSettingsRow {
   readonly defaultModel: string
   readonly allowedModels: string[]
+  readonly maxChars: number
 }
 
 function buildCtx(row: {
@@ -83,6 +84,7 @@ function buildRuntime(allowedModels: readonly string[]): TtsRuntimeConfig {
     client: new OpenRouterClient({ apiKey: 'test-key' }),
     defaultModel: allowedModels[0] ?? GEMINI_MODEL,
     allowedModels,
+    maxChars: 500,
   }
 }
 
@@ -209,6 +211,7 @@ describe('TTS runtime model policy', () => {
         modelSettings: {
           defaultModel: 'unsupported/default-model',
           allowedModels: [GEMINI_MODEL, OPENAI_MODEL],
+          maxChars: 800,
         },
       }),
       guildId,
@@ -228,6 +231,7 @@ describe('TTS runtime model policy', () => {
         modelSettings: {
           defaultModel: 'unsupported/default-model',
           allowedModels: [OPENAI_MODEL],
+          maxChars: 800,
         },
       }),
       guildId,
@@ -247,6 +251,7 @@ describe('TTS runtime model policy', () => {
         modelSettings: {
           defaultModel: OPENAI_MODEL,
           allowedModels: ['made-up/model', OPENAI_MODEL],
+          maxChars: 800,
         },
       }),
       guildId,
@@ -266,6 +271,7 @@ describe('TTS runtime model policy', () => {
         modelSettings: {
           defaultModel: 'unsupported/default-model',
           allowedModels: ['made-up/model', 'another/model'],
+          maxChars: 800,
         },
       }),
       guildId,

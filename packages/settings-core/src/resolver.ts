@@ -1,5 +1,11 @@
 import type { LocaleCode, QueueStrategyName } from '@to-much-talker/shared'
-import { clampMax, coerceBoolean, intersectAllowlist } from './clamps.js'
+import {
+  DEFAULT_TTS_MAX_CHARS,
+  clampMax,
+  clampTtsMaxChars,
+  coerceBoolean,
+  intersectAllowlist,
+} from './clamps.js'
 
 const DEFAULT_MODEL = 'google/gemini-3.1-flash-tts-preview'
 const DEFAULT_ALLOWED_MODELS = [DEFAULT_MODEL, 'openai/gpt-4o-mini-tts-2025-12-15'] as const
@@ -59,8 +65,9 @@ function localeValue(value: unknown): LocaleCode | undefined {
 export function resolveSettings(input: SettingsInput): ResolvedSettings {
   const { server, channel, user } = input
 
-  const serverMaxChars = numberValue(getFromRow(server, 'maxChars')) ?? 500
-  const channelMaxChars = numberValue(getFromRow(channel, 'maxChars'))
+  const serverMaxChars =
+    clampTtsMaxChars(numberValue(getFromRow(server, 'maxChars'))) ?? DEFAULT_TTS_MAX_CHARS
+  const channelMaxChars = clampTtsMaxChars(numberValue(getFromRow(channel, 'maxChars')))
   const resolvedMaxChars =
     clampMax(channelMaxChars ?? serverMaxChars, serverMaxChars) ?? serverMaxChars
 

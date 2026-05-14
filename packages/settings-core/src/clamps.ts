@@ -1,5 +1,18 @@
 // Pure helper functions for settings resolution.
 
+export const MIN_TTS_MAX_CHARS = 1
+export const MAX_TTS_MAX_CHARS = 2000
+export const DEFAULT_TTS_MAX_CHARS = 500
+
+export function clampTtsMaxChars(value: number | null | undefined): number | null {
+  if (value === null || value === undefined) return null
+  return Math.min(Math.max(Math.trunc(value), MIN_TTS_MAX_CHARS), MAX_TTS_MAX_CHARS)
+}
+
+export function isTtsMaxCharsInRange(value: number): boolean {
+  return Number.isInteger(value) && value >= MIN_TTS_MAX_CHARS && value <= MAX_TTS_MAX_CHARS
+}
+
 export function clampMax(
   value: number | null | undefined,
   ceiling: number | null | undefined,

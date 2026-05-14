@@ -33,6 +33,8 @@ export function registerCommandHandlers(router: InteractionRouter, ctx: CommandC
   router.register('tts', 'stats', (i) => handleTtsStats(i, ctx))
   router.register('tts', 'help', (i) => handleTtsHelp(i, ctx))
   router.register('tts', 'api-key', (i) => handleTtsSettings(i, ctx))
+  router.register('tts', 'server-max-chars', (i) => handleTtsSettings(i, ctx))
+  router.register('tts', 'channel-max-chars', (i) => handleTtsSettings(i, ctx))
   router.register('tts', 'model', (i) => handleTtsSettings(i, ctx))
   router.register('tts', 'voice', (i) => handleTtsSettings(i, ctx))
   for (const buttonId of TTS_VOICE_BUTTON_IDS) {

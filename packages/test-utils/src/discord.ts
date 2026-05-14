@@ -25,6 +25,7 @@ export interface MockInteraction {
     getSubcommand: (required?: boolean) => string | null
     getString: (name: string, required?: boolean) => string | null
     getNumber: (name: string, required?: boolean) => number | null
+    getInteger: (name: string, required?: boolean) => number | null
     getBoolean: (name: string, required?: boolean) => boolean | null
   }
   // Mock fns — use vi.fn() for Vitest compatibility
@@ -82,6 +83,11 @@ export function mockChatInputInteraction(opts: MockInteractionOptions = {}): Moc
       getNumber: (name: string): number | null => {
         const val = resolved.options[name]
         if (typeof val === 'number') return val
+        return null
+      },
+      getInteger: (name: string): number | null => {
+        const val = resolved.options[name]
+        if (typeof val === 'number') return Math.trunc(val)
         return null
       },
       getBoolean: (name: string): boolean | null => {
