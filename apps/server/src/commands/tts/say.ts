@@ -1,4 +1,4 @@
-import type { Readable } from 'node:stream'
+import { Readable } from 'node:stream'
 import { getVoiceConnection } from '@discordjs/voice'
 import { synthesize } from '@to-much-talker/ai'
 import { m } from '@to-much-talker/i18n'
@@ -52,7 +52,8 @@ interface SynthesizedTtsStream {
 }
 
 interface PreparedTtsAudio {
-  readonly audio: Buffer
+  readonly opusChunks: readonly Buffer[]
+  readonly opusBytes: number
   readonly model: string
   readonly synthStartMs: number
   readonly preparedAtMs: number
@@ -111,12 +112,12 @@ function scheduleTtsPrefetch(
   return prepared
 }
 
-async function readableToBuffer(stream: Readable): Promise<Buffer> {
+async function readableToChunks(stream: Readable): Promise<readonly Buffer[]> {
   const chunks: Buffer[] = []
   for await (const chunk of stream) {
     chunks.push(audioChunkToBuffer(chunk))
   }
-  return Buffer.concat(chunks)
+  return chunks
 }
 
 function audioChunkToBuffer(chunk: unknown): Buffer {
@@ -292,9 +293,21 @@ async function prepareQueuedText(
   runtime: Awaited<ReturnType<typeof getGuildTtsRuntime>>,
   queuedAtMs: number,
 ): Promise<PreparedTtsAudio | null> {
-  if (runtime === null) return null
+  if (runtime === null) {
+    log.warn(
+      { guildId: params.guildId, source: params.source },
+      'Skipping TTS: no runtime available',
+    )
+    return null
+  }
   const connection = getVoiceConnection(params.guildId)
-  if (connection === undefined) return null
+  if (connection === undefined) {
+    log.warn(
+      { guildId: params.guildId, channelId: params.channelId, source: params.source },
+      'Skipping TTS: no active voice connection',
+    )
+    return null
+  }
 
   const synthStartMs = nowMs()
   const preset = await resolveUserTtsPreset(ctx, params.guildId, params.userId, runtime)
@@ -309,7 +322,8 @@ async function prepareQueuedText(
     return null
   }
 
-  const opus = await readableToBuffer(audioBytesToOpus(result.audio, result.format))
+  const opusChunks = await readableToChunks(audioBytesToOpus(result.audio, result.format))
+  const opusBytes = opusChunks.reduce((total, chunk) => total + chunk.length, 0)
   const preparedAtMs = nowMs()
 
   log.info(
@@ -318,6 +332,8 @@ async function prepareQueuedText(
       channelId: params.channelId,
       source: params.source,
       model: result.model,
+      opusChunks: opusChunks.length,
+      opusBytes,
       queueWaitMs: Math.round(synthStartMs - queuedAtMs),
       synthToReadyMs: Math.round(preparedAtMs - synthStartMs),
       totalToReadyMs: Math.round(preparedAtMs - (params.receivedAtMs ?? queuedAtMs)),
@@ -325,7 +341,7 @@ async function prepareQueuedText(
     'Prepared TTS audio',
   )
 
-  return { audio: opus, model: result.model, synthStartMs, preparedAtMs }
+  return { opusChunks, opusBytes, model: result.model, synthStartMs, preparedAtMs }
 }
 
 async function playPreparedText(
@@ -335,10 +351,22 @@ async function playPreparedText(
   prepared: Promise<PreparedTtsAudio | null>,
 ): Promise<void> {
   const connection = getVoiceConnection(params.guildId)
-  if (connection === undefined) return
+  if (connection === undefined) {
+    log.warn(
+      { guildId: params.guildId, channelId: params.channelId, source: params.source },
+      'Skipping prepared TTS playback: voice connection missing',
+    )
+    return
+  }
 
   const result = await prepared
-  if (result === null) return
+  if (result === null) {
+    log.warn(
+      { guildId: params.guildId, channelId: params.channelId, source: params.source },
+      'Skipping prepared TTS playback: audio unavailable',
+    )
+    return
+  }
 
   const player = getOrCreatePlayer(params.guildId)
   player.attachConnection(connection)
@@ -365,12 +393,18 @@ async function playPreparedText(
       source: params.source,
       model: result.model,
       format: 'opus',
+      opusChunks: result.opusChunks.length,
+      opusBytes: result.opusBytes,
       queueWaitMs: Math.round(result.synthStartMs - queuedAtMs),
     },
     'Playing prepared TTS message',
   )
   try {
-    await player.playFromBuffer(result.audio, 'opus', playbackTimeoutMs(params.text))
+    await player.playFromReadable(
+      Readable.from(result.opusChunks),
+      'opus',
+      playbackTimeoutMs(params.text),
+    )
   } finally {
     player.off('start', playbackStartListener)
   }
