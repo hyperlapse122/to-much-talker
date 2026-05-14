@@ -51,22 +51,51 @@ export class InteractionRouter {
   }
 
   async dispatch(interaction: ChatInputCommandInteraction): Promise<void> {
+    const startedAtMs = performance.now()
     const subcommand = interaction.options.getSubcommand(false)
     const key =
       subcommand !== null ? `${interaction.commandName}.${subcommand}` : interaction.commandName
 
+    log.debug(
+      {
+        key,
+        guildId: interaction.guildId,
+        channelId: interaction.channelId,
+        interactionId: interaction.id,
+      },
+      'Command interaction received',
+    )
+
     const handler = this.#handlers.get(key)
     if (handler === undefined) {
-      log.warn({ key }, 'No handler registered for command')
+      log.warn(
+        { key, guildId: interaction.guildId, channelId: interaction.channelId },
+        'No handler registered for command',
+      )
       await interaction.reply({ content: 'Unknown command.', flags: MessageFlags.Ephemeral })
       return
     }
 
     try {
       await handler(interaction)
+      log.debug(
+        {
+          key,
+          guildId: interaction.guildId,
+          channelId: interaction.channelId,
+          durationMs: Math.round(performance.now() - startedAtMs),
+        },
+        'Command interaction handled',
+      )
     } catch (error) {
       log.error(
-        { key, error: error instanceof Error ? error.message : String(error) },
+        {
+          key,
+          guildId: interaction.guildId,
+          channelId: interaction.channelId,
+          durationMs: Math.round(performance.now() - startedAtMs),
+          error: error instanceof Error ? error.message : String(error),
+        },
         'Command handler error',
       )
 

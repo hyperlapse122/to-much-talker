@@ -4,12 +4,13 @@ import { type Client, Events, type Message } from 'discord.js'
 import { and } from 'drizzle-orm'
 import type { CommandContext } from '../commands/context.js'
 import { enqueueTtsText } from '../commands/tts/say.js'
+import type { Logger } from '../logger.js'
 
 export function attachMessageReader(client: Client, ctx: CommandContext): void {
   const log = ctx.logger.child({ component: 'message-reader' })
 
   client.on(Events.MessageCreate, (message) => {
-    void handleMessage(message, ctx).catch((error: unknown) => {
+    void handleMessage(message, ctx, log).catch((error: unknown) => {
       log.error(
         { error: error instanceof Error ? error.message : String(error) },
         'Failed to queue message for TTS',
@@ -18,7 +19,7 @@ export function attachMessageReader(client: Client, ctx: CommandContext): void {
   })
 }
 
-async function handleMessage(message: Message, ctx: CommandContext): Promise<void> {
+async function handleMessage(message: Message, ctx: CommandContext, log: Logger): Promise<void> {
   const receivedAtMs = performance.now()
   if (message.author.bot) return
   if (message.guildId === null) return
@@ -29,7 +30,18 @@ async function handleMessage(message: Message, ctx: CommandContext): Promise<voi
   if (voiceChannelId === undefined || voiceChannelId === null) return
 
   const boundTextChannelId = await loadBoundTextChannelId(ctx, message.guildId, voiceChannelId)
-  if (boundTextChannelId !== message.channelId) return
+  if (boundTextChannelId !== message.channelId) {
+    log.debug(
+      {
+        guildId: message.guildId,
+        channelId: message.channelId,
+        voiceChannelId,
+        boundTextChannelId,
+      },
+      'Skipping message from unbound text channel',
+    )
+    return
+  }
 
   const result = await enqueueTtsText(ctx, {
     guildId: message.guildId,
@@ -40,7 +52,12 @@ async function handleMessage(message: Message, ctx: CommandContext): Promise<voi
     receivedAtMs,
   })
 
-  if (!result.accepted) return
+  if (!result.accepted) {
+    log.warn(
+      { guildId: message.guildId, channelId: message.channelId, reason: result.reason },
+      'Message TTS queue rejected',
+    )
+  }
 }
 
 async function loadBoundTextChannelId(
