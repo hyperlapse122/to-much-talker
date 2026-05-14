@@ -1,6 +1,8 @@
 import { OpenRouterClient } from '@to-much-talker/ai'
 import { decrypt, KeyRing, parseMasterKey } from '@to-much-talker/crypto'
 import { and, eq, pg, sqlite } from '@to-much-talker/db'
+import type { ResolvedSettings } from '@to-much-talker/settings-core'
+import { resolveSettings } from '@to-much-talker/settings-core'
 import type { CommandContext } from '../context.js'
 import {
   defaultVoicePresetForModel,
@@ -23,9 +25,13 @@ export interface TtsRuntimeConfig {
   readonly client: OpenRouterClient
   readonly defaultModel: string
   readonly allowedModels: readonly string[]
+  readonly maxChars: number
 }
 
-export type TtsRuntimeModelSettings = Pick<TtsRuntimeConfig, 'defaultModel' | 'allowedModels'>
+export type TtsRuntimeModelSettings = Pick<
+  TtsRuntimeConfig,
+  'defaultModel' | 'allowedModels' | 'maxChars'
+>
 
 const runtimeCache = new Map<string, Promise<TtsRuntimeConfig | null>>()
 
@@ -55,6 +61,21 @@ export async function getGuildTtsModelSettings(
   return loadGuildModelSettings(guildId, ctx)
 }
 
+export async function resolveTtsMessageSettings(
+  ctx: CommandContext,
+  guildId: string,
+  channelId: string,
+  userId: string,
+): Promise<ResolvedSettings> {
+  const cacheKey = { guildId, channelId, userId }
+  const cached = ctx.settingsCache.get(cacheKey)
+  if (cached !== undefined) return cached
+
+  const settings = await loadResolvedSettings(guildId, channelId, userId, ctx)
+  ctx.settingsCache.set(cacheKey, settings)
+  return settings
+}
+
 async function loadGuildTtsRuntime(
   ctx: CommandContext,
   guildId: string,
@@ -64,6 +85,84 @@ async function loadGuildTtsRuntime(
 
   const modelSettings = await loadGuildModelSettings(guildId, ctx)
   return { client: new OpenRouterClient({ apiKey }), ...modelSettings }
+}
+
+async function loadResolvedSettings(
+  guildId: string,
+  channelId: string | null,
+  userId: string | null,
+  ctx: CommandContext,
+): Promise<ResolvedSettings> {
+  if (ctx.db.dialect === 'sqlite') {
+    const server = ctx.db.db
+      .select()
+      .from(sqlite.guildSettings)
+      .where(eq(sqlite.guildSettings.guildId, guildId))
+      .get()
+    const channel =
+      channelId === null
+        ? null
+        : ctx.db.db
+            .select()
+            .from(sqlite.channelSettings)
+            .where(
+              and(
+                eq(sqlite.channelSettings.guildId, guildId),
+                eq(sqlite.channelSettings.channelId, channelId),
+              ),
+            )
+            .get()
+    const user =
+      userId === null
+        ? null
+        : ctx.db.db
+            .select({
+              preferredModel: sqlite.userSettings.preferredModel,
+              preferredLocale: sqlite.userSettings.preferredLocale,
+            })
+            .from(sqlite.userSettings)
+            .where(
+              and(eq(sqlite.userSettings.guildId, guildId), eq(sqlite.userSettings.userId, userId)),
+            )
+            .get()
+    return resolveSettings({ server: server ?? null, channel: channel ?? null, user: user ?? null })
+  }
+
+  const serverRows = await ctx.db.db
+    .select()
+    .from(pg.guildSettings)
+    .where(eq(pg.guildSettings.guildId, guildId))
+    .limit(1)
+  const channelRows =
+    channelId === null
+      ? []
+      : await ctx.db.db
+          .select()
+          .from(pg.channelSettings)
+          .where(
+            and(
+              eq(pg.channelSettings.guildId, guildId),
+              eq(pg.channelSettings.channelId, channelId),
+            ),
+          )
+          .limit(1)
+  const userRows =
+    userId === null
+      ? []
+      : await ctx.db.db
+          .select({
+            preferredModel: pg.userSettings.preferredModel,
+            preferredLocale: pg.userSettings.preferredLocale,
+          })
+          .from(pg.userSettings)
+          .where(and(eq(pg.userSettings.guildId, guildId), eq(pg.userSettings.userId, userId)))
+          .limit(1)
+
+  return resolveSettings({
+    server: serverRows[0] ?? null,
+    channel: channelRows[0] ?? null,
+    user: userRows[0] ?? null,
+  })
 }
 
 export async function resolveUserTtsModel(
@@ -102,6 +201,7 @@ async function loadGuildModelSettings(
       .select({
         defaultModel: sqlite.guildSettings.defaultModel,
         allowedModels: sqlite.guildSettings.allowedModels,
+        maxChars: sqlite.guildSettings.maxChars,
       })
       .from(sqlite.guildSettings)
       .where(eq(sqlite.guildSettings.guildId, guildId))
@@ -113,6 +213,7 @@ async function loadGuildModelSettings(
     .select({
       defaultModel: pg.guildSettings.defaultModel,
       allowedModels: pg.guildSettings.allowedModels,
+      maxChars: pg.guildSettings.maxChars,
     })
     .from(pg.guildSettings)
     .where(eq(pg.guildSettings.guildId, guildId))
@@ -121,11 +222,12 @@ async function loadGuildModelSettings(
 }
 
 function normalizeModelSettings(
-  row: { defaultModel: string; allowedModels: string[] } | undefined,
+  row: { defaultModel: string; allowedModels: string[]; maxChars: number } | undefined,
 ): TtsRuntimeModelSettings {
   const allowedModels = sanitizeAllowedModels(row?.allowedModels)
   const defaultModel = sanitizeDefaultModel(row?.defaultModel, allowedModels)
-  return { defaultModel, allowedModels }
+  const maxChars = resolveSettings({ server: row ?? null, channel: null, user: null }).maxChars
+  return { defaultModel, allowedModels, maxChars }
 }
 
 function sanitizeAllowedModels(

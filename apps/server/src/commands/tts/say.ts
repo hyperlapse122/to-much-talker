@@ -1,17 +1,21 @@
 import { getVoiceConnection } from '@discordjs/voice'
 import { synthesizeStream } from '@to-much-talker/ai'
+import { m } from '@to-much-talker/i18n'
 import { type ChatInputCommandInteraction, MessageFlags } from 'discord.js'
 import type { Logger } from '../../logger.js'
 import { getOrCreatePlayer } from '../../voice/index.js'
 import type { CommandContext } from '../context.js'
-import { getGuildTtsRuntime, resolveUserTtsPreset } from './runtime-cache.js'
+import {
+  getGuildTtsRuntime,
+  resolveTtsMessageSettings,
+  resolveUserTtsPreset,
+} from './runtime-cache.js'
 import {
   defaultVoicePresetForModel,
   type TtsPlaybackFormat,
   type TtsVoicePreset,
 } from './voice-presets.js'
 
-const MAX_CHARS = 500
 const CUSTOM_EMOJI = /<a?:([^:]+):\d+>/g
 const URL_PATTERN = /https?:\/\/\S+/g
 const USER_MENTION = /<@!?\d+>/g
@@ -31,6 +35,7 @@ interface QueueTtsParams {
   readonly text: string
   readonly source: 'command' | 'message'
   readonly receivedAtMs?: number
+  readonly maxChars?: number
 }
 
 interface QueueTtsResult {
@@ -132,7 +137,13 @@ export async function handleTtsSay(
   }
 
   const rawText = interaction.options.getString('text', true)
-  const { text, truncated } = sanitizeText(rawText, MAX_CHARS)
+  const settings = await resolveTtsMessageSettings(
+    ctx,
+    guild.id,
+    interaction.channelId,
+    interaction.user.id,
+  )
+  const { text, truncated } = sanitizeText(rawText, settings.maxChars)
 
   if (text.length === 0) {
     await interaction.reply({
@@ -143,9 +154,8 @@ export async function handleTtsSay(
   }
 
   if (truncated) {
-    // i18n: tts_say_over_limit
     await interaction.reply({
-      content: `Your message was truncated to ${MAX_CHARS} characters. Queued: "${text.slice(0, 50)}..."`,
+      content: m.tts_say_over_limit({ maxChars: settings.maxChars }),
       flags: MessageFlags.Ephemeral,
     })
     return
@@ -158,6 +168,7 @@ export async function handleTtsSay(
     text,
     source: 'command',
     receivedAtMs,
+    maxChars: settings.maxChars,
   })
 
   if (!queued.accepted) {
@@ -180,7 +191,10 @@ export async function enqueueTtsText(
 ): Promise<QueueTtsResult> {
   const log = ctx.logger.child({ component: 'tts/playback-queue' })
   const receivedAtMs = params.receivedAtMs ?? nowMs()
-  const { text, truncated } = sanitizeText(params.text, MAX_CHARS)
+  const maxChars =
+    params.maxChars ??
+    (await resolveTtsMessageSettings(ctx, params.guildId, params.channelId, params.userId)).maxChars
+  const { text, truncated } = sanitizeText(params.text, maxChars)
   if (text.length === 0) return { accepted: false, reason: 'Message is empty after sanitization.' }
 
   const connection = getVoiceConnection(params.guildId)

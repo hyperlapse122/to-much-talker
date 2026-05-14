@@ -83,6 +83,36 @@ export function buildTtsCommand(): SlashCommandBuilder {
         new SlashCommandSubcommandBuilder()
           .setName('api-key')
           .setDescription('Set the OpenRouter API key for this server'),
+      )
+      .addSubcommand(
+        new SlashCommandSubcommandBuilder()
+          .setName('server-max-chars')
+          .setDescription('View, set, or reset the server TTS message limit')
+          .addIntegerOption((opt) =>
+            opt
+              .setName('value')
+              .setDescription('New server character limit')
+              .setMinValue(1)
+              .setMaxValue(2000),
+          )
+          .addBooleanOption((opt) =>
+            opt.setName('reset').setDescription('Reset the server limit to the default'),
+          ),
+      )
+      .addSubcommand(
+        new SlashCommandSubcommandBuilder()
+          .setName('channel-max-chars')
+          .setDescription('View, set, or reset this channel TTS message limit')
+          .addIntegerOption((opt) =>
+            opt
+              .setName('value')
+              .setDescription('New channel character limit')
+              .setMinValue(1)
+              .setMaxValue(2000),
+          )
+          .addBooleanOption((opt) =>
+            opt.setName('reset').setDescription('Clear this channel override'),
+          ),
       ),
   )
 

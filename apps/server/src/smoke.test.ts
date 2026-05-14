@@ -109,7 +109,11 @@ function withoutGuild(interaction: MockInteraction): MockInteraction & { guild: 
  * the join/leave/skip code paths exercised here.
  */
 function buildCtxHarness(
-  params: { readonly preferredVoice?: string; readonly permissionsRoleId?: string | null } = {},
+  params: {
+    readonly preferredVoice?: string
+    readonly permissionsRoleId?: string | null
+    readonly maxChars?: number | null
+  } = {},
 ): SmokeCtxHarness {
   const childLogger = {
     info: vi.fn(),
@@ -500,6 +504,59 @@ describe('Bot smoke tests', () => {
     expect(apiKeyCommand?.options ?? []).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ name: 'key' })]),
     )
+  })
+
+  it('/tts settings max chars commands are registered under settings', () => {
+    const command = buildTtsCommand().toJSON() as {
+      readonly options?: readonly CommandJsonOption[]
+    }
+    const settingsGroup = command.options?.find((option) => option.name === 'settings')
+    const serverMaxChars = settingsGroup?.options?.find(
+      (option) => option.name === 'server-max-chars',
+    )
+    const channelMaxChars = settingsGroup?.options?.find(
+      (option) => option.name === 'channel-max-chars',
+    )
+
+    expect(serverMaxChars?.options?.map((option) => option.name)).toEqual(['value', 'reset'])
+    expect(channelMaxChars?.options?.map((option) => option.name)).toEqual(['value', 'reset'])
+  })
+
+  it('/tts settings server-max-chars writes an audit row and invalidates caches', async () => {
+    const base = mockChatInputInteraction({
+      commandName: 'tts',
+      subcommandGroup: 'settings',
+      subcommand: 'server-max-chars',
+      guildId: '123456789012345678',
+      memberPermissions: PermissionFlagsBits.ManageGuild,
+      options: { value: 1200 },
+    })
+    const harness = buildCtxHarness({ maxChars: 500 })
+
+    await handleTtsSettings(base as never, harness.ctx)
+
+    expect(JSON.stringify(harness.insertValues)).toContain('1200')
+    expect(JSON.stringify(harness.insertValues)).toContain('maxChars')
+    expect(harness.invalidate).toHaveBeenCalledWith('123456789012345678')
+    expect(harness.broadcastInvalidate).toHaveBeenCalledWith('123456789012345678')
+  })
+
+  it('/tts settings channel-max-chars rejects values above server ceiling', async () => {
+    const base = mockChatInputInteraction({
+      commandName: 'tts',
+      subcommandGroup: 'settings',
+      subcommand: 'channel-max-chars',
+      guildId: '123456789012345678',
+      memberPermissions: PermissionFlagsBits.ManageGuild,
+      options: { value: 300 },
+    })
+    const harness = buildCtxHarness({ maxChars: 200 })
+
+    await handleTtsSettings(base as never, harness.ctx)
+
+    const firstCallArg = base.reply.mock.calls[0]?.[0] as { content?: string } | undefined
+    expect(firstCallArg?.content).toContain('server limit of 200')
+    expect(harness.insertValues).toEqual([])
   })
 
   it('/tts settings api-key shows a modal for members with the configured settings role', async () => {

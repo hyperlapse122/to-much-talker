@@ -33,6 +33,14 @@ export const TTS_VOICE_BUTTON_IDS = TTS_VOICE_PRESETS.map(
 
 export const TTS_API_KEY_MODAL_CUSTOM_ID = 'tts:settings:api-key'
 const TTS_API_KEY_MODAL_INPUT_ID = 'openrouter-api-key'
+const MAX_CHARS_KEY = 'maxChars'
+const MIN_TTS_MAX_CHARS = 1
+const DEFAULT_TTS_MAX_CHARS = 500
+const MAX_TTS_MAX_CHARS = 2000
+
+function isTtsMaxCharsInRange(value: number): boolean {
+  return Number.isInteger(value) && value >= MIN_TTS_MAX_CHARS && value <= MAX_TTS_MAX_CHARS
+}
 
 interface ApiKeyState {
   readonly hasApiKey: boolean
@@ -43,6 +51,12 @@ interface EncryptedApiKey {
   readonly iv: string
   readonly authTag: string
   readonly version: number
+}
+
+type MaxCharsScope = 'server' | 'channel'
+
+interface MaxCharsState {
+  readonly maxChars: number | null
 }
 
 export async function handleTtsSettings(
@@ -57,6 +71,16 @@ export async function handleTtsSettings(
 
   if (group === 'settings' && subcommand === 'api-key') {
     await handleApiKey(interaction, ctx)
+    return
+  }
+
+  if (group === 'settings' && subcommand === 'server-max-chars') {
+    await handleMaxChars(interaction, ctx, 'server')
+    return
+  }
+
+  if (group === 'settings' && subcommand === 'channel-max-chars') {
+    await handleMaxChars(interaction, ctx, 'channel')
     return
   }
 
@@ -158,6 +182,75 @@ async function handleUserVoice(
   await interaction.reply({
     content: buildVoicePickerContent(selectedVoice, voicePresets),
     components: buildVoicePickerRows(selectedVoice, voicePresets),
+    flags: MessageFlags.Ephemeral,
+  })
+}
+
+async function handleMaxChars(
+  interaction: ChatInputCommandInteraction,
+  ctx: CommandContext,
+  scope: MaxCharsScope,
+): Promise<void> {
+  const guildId = interaction.guildId
+  if (guildId === null) {
+    await interaction.reply({
+      content: m.tts_settings_guild_only_server(),
+      flags: MessageFlags.Ephemeral,
+    })
+    return
+  }
+
+  if (!(await canUpdateServerSettings(interaction, ctx, guildId))) {
+    await interaction.reply({
+      content: m.tts_settings_api_key_unauthorized(),
+      flags: MessageFlags.Ephemeral,
+    })
+    return
+  }
+
+  const value = interaction.options.getInteger('value', false)
+  const reset = interaction.options.getBoolean('reset', false) ?? false
+  const channelId = interaction.channelId
+  const serverMaxChars = await loadServerMaxChars(ctx, guildId)
+  const serverLimit = serverMaxChars.maxChars ?? DEFAULT_TTS_MAX_CHARS
+
+  if (value === null && !reset) {
+    const current =
+      scope === 'server' ? serverMaxChars : await loadChannelMaxChars(ctx, guildId, channelId)
+    await interaction.reply({
+      content: m.tts_settings_max_chars_current({
+        scope,
+        maxChars: current.maxChars ?? serverLimit,
+      }),
+      flags: MessageFlags.Ephemeral,
+    })
+    return
+  }
+
+  if (value !== null && !isTtsMaxCharsInRange(value)) {
+    await interaction.reply({
+      content: m.tts_settings_max_chars_invalid({
+        min: MIN_TTS_MAX_CHARS,
+        max: MAX_TTS_MAX_CHARS,
+      }),
+      flags: MessageFlags.Ephemeral,
+    })
+    return
+  }
+
+  if (scope === 'channel' && value !== null && value > serverLimit) {
+    await interaction.reply({
+      content: m.tts_settings_max_chars_above_server({ maxChars: serverLimit }),
+      flags: MessageFlags.Ephemeral,
+    })
+    return
+  }
+
+  await saveMaxChars(ctx, guildId, channelId, interaction.user.id, scope, reset ? null : value)
+  await interaction.reply({
+    content: reset
+      ? m.tts_settings_reset_success({ key: MAX_CHARS_KEY })
+      : m.tts_settings_server_set_success({ key: MAX_CHARS_KEY, value: String(value) }),
     flags: MessageFlags.Ephemeral,
   })
 }
@@ -381,6 +474,232 @@ function userVoiceAuditValues(
     },
     newValue: { preferredModel: preset.model, preferredVoice: preset.voice },
     actorId: userId,
+  }
+}
+
+async function loadServerMaxChars(ctx: CommandContext, guildId: string): Promise<MaxCharsState> {
+  if (ctx.db.dialect === 'sqlite') {
+    const row = ctx.db.db
+      .select({ maxChars: sqlite.guildSettings.maxChars })
+      .from(sqlite.guildSettings)
+      .where(eq(sqlite.guildSettings.guildId, guildId))
+      .get()
+    return { maxChars: row?.maxChars ?? DEFAULT_TTS_MAX_CHARS }
+  }
+
+  const rows = await ctx.db.db
+    .select({ maxChars: pg.guildSettings.maxChars })
+    .from(pg.guildSettings)
+    .where(eq(pg.guildSettings.guildId, guildId))
+    .limit(1)
+  return { maxChars: rows[0]?.maxChars ?? DEFAULT_TTS_MAX_CHARS }
+}
+
+async function loadChannelMaxChars(
+  ctx: CommandContext,
+  guildId: string,
+  channelId: string,
+): Promise<MaxCharsState> {
+  if (ctx.db.dialect === 'sqlite') {
+    const row = ctx.db.db
+      .select({ maxChars: sqlite.channelSettings.maxChars })
+      .from(sqlite.channelSettings)
+      .where(
+        and(
+          eq(sqlite.channelSettings.guildId, guildId),
+          eq(sqlite.channelSettings.channelId, channelId),
+        ),
+      )
+      .get()
+    return { maxChars: row?.maxChars ?? null }
+  }
+
+  const rows = await ctx.db.db
+    .select({ maxChars: pg.channelSettings.maxChars })
+    .from(pg.channelSettings)
+    .where(
+      and(eq(pg.channelSettings.guildId, guildId), eq(pg.channelSettings.channelId, channelId)),
+    )
+    .limit(1)
+  return { maxChars: rows[0]?.maxChars ?? null }
+}
+
+async function saveMaxChars(
+  ctx: CommandContext,
+  guildId: string,
+  channelId: string,
+  actorId: string,
+  scope: MaxCharsScope,
+  value: number | null,
+): Promise<void> {
+  if (ctx.db.dialect === 'sqlite') {
+    saveSqliteMaxChars(ctx.db.db, guildId, channelId, actorId, scope, value)
+  } else {
+    await savePgMaxChars(ctx.db.db, guildId, channelId, actorId, scope, value)
+  }
+
+  ctx.settingsCache.invalidate(guildId)
+  invalidateTtsRuntimeCache(guildId)
+  await ctx.ipcTransport.broadcastInvalidate(guildId)
+}
+
+function saveSqliteMaxChars(
+  db: import('@to-much-talker/db').SqliteDb['db'],
+  guildId: string,
+  channelId: string,
+  actorId: string,
+  scope: MaxCharsScope,
+  value: number | null,
+): void {
+  if (scope === 'server') {
+    const previous = db
+      .select({ maxChars: sqlite.guildSettings.maxChars })
+      .from(sqlite.guildSettings)
+      .where(eq(sqlite.guildSettings.guildId, guildId))
+      .get()
+    const nextValue = value ?? DEFAULT_TTS_MAX_CHARS
+    db.insert(sqlite.guildSettings)
+      .values({ guildId, maxChars: nextValue, updatedAt: new Date() })
+      .onConflictDoUpdate({
+        target: sqlite.guildSettings.guildId,
+        set: { maxChars: nextValue, updatedAt: new Date() },
+      })
+      .run()
+    db.insert(sqlite.settingAuditLog)
+      .values(
+        maxCharsAuditValues(
+          guildId,
+          null,
+          actorId,
+          'server',
+          previous?.maxChars ?? null,
+          nextValue,
+        ),
+      )
+      .run()
+    return
+  }
+
+  const previous = db
+    .select({ maxChars: sqlite.channelSettings.maxChars })
+    .from(sqlite.channelSettings)
+    .where(
+      and(
+        eq(sqlite.channelSettings.guildId, guildId),
+        eq(sqlite.channelSettings.channelId, channelId),
+      ),
+    )
+    .get()
+  db.insert(sqlite.channelSettings)
+    .values({ guildId, channelId, maxChars: value, updatedAt: new Date() })
+    .onConflictDoUpdate({
+      target: [sqlite.channelSettings.guildId, sqlite.channelSettings.channelId],
+      set: { maxChars: value, updatedAt: new Date() },
+    })
+    .run()
+  db.insert(sqlite.settingAuditLog)
+    .values(
+      maxCharsAuditValues(
+        guildId,
+        channelId,
+        actorId,
+        'channel',
+        previous?.maxChars ?? null,
+        value,
+      ),
+    )
+    .run()
+}
+
+async function savePgMaxChars(
+  db: import('@to-much-talker/db').PgDb['db'],
+  guildId: string,
+  channelId: string,
+  actorId: string,
+  scope: MaxCharsScope,
+  value: number | null,
+): Promise<void> {
+  if (scope === 'server') {
+    const previousRows = await db
+      .select({ maxChars: pg.guildSettings.maxChars })
+      .from(pg.guildSettings)
+      .where(eq(pg.guildSettings.guildId, guildId))
+      .limit(1)
+    const nextValue = value ?? DEFAULT_TTS_MAX_CHARS
+    await db
+      .insert(pg.guildSettings)
+      .values({ guildId, maxChars: nextValue, updatedAt: new Date() })
+      .onConflictDoUpdate({
+        target: pg.guildSettings.guildId,
+        set: { maxChars: nextValue, updatedAt: new Date() },
+      })
+    await db
+      .insert(pg.settingAuditLog)
+      .values(
+        maxCharsAuditValues(
+          guildId,
+          null,
+          actorId,
+          'server',
+          previousRows[0]?.maxChars ?? null,
+          nextValue,
+        ),
+      )
+    return
+  }
+
+  const previousRows = await db
+    .select({ maxChars: pg.channelSettings.maxChars })
+    .from(pg.channelSettings)
+    .where(
+      and(eq(pg.channelSettings.guildId, guildId), eq(pg.channelSettings.channelId, channelId)),
+    )
+    .limit(1)
+  await db
+    .insert(pg.channelSettings)
+    .values({ guildId, channelId, maxChars: value, updatedAt: new Date() })
+    .onConflictDoUpdate({
+      target: [pg.channelSettings.guildId, pg.channelSettings.channelId],
+      set: { maxChars: value, updatedAt: new Date() },
+    })
+  await db
+    .insert(pg.settingAuditLog)
+    .values(
+      maxCharsAuditValues(
+        guildId,
+        channelId,
+        actorId,
+        'channel',
+        previousRows[0]?.maxChars ?? null,
+        value,
+      ),
+    )
+}
+
+function maxCharsAuditValues(
+  guildId: string,
+  channelId: string | null,
+  actorId: string,
+  scope: MaxCharsScope,
+  previous: number | null,
+  next: number | null,
+): {
+  readonly guildId: string
+  readonly channelId: string | null
+  readonly scope: MaxCharsScope
+  readonly key: string
+  readonly oldValue: { readonly maxChars: number | null }
+  readonly newValue: { readonly maxChars: number | null }
+  readonly actorId: string
+} {
+  return {
+    guildId,
+    channelId,
+    scope,
+    key: MAX_CHARS_KEY,
+    oldValue: { maxChars: previous },
+    newValue: { maxChars: next },
+    actorId,
   }
 }
 
