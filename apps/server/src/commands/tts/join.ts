@@ -57,19 +57,13 @@ export async function handleTtsJoin(
   try {
     await joinVoice(guild, voiceChannel)
     joinedVoice = true
-    await bindTextChannel(
-      ctx,
-      guild.id,
-      voiceChannel.id,
-      interaction.channelId,
-      interaction.user.id,
-    )
+    await bindTextChannel(ctx, guild.id, voiceChannel.id, voiceChannel.id, interaction.user.id)
 
     log.info({ guildId: guild.id, channelId: voiceChannel.id }, 'Joined voice channel')
 
     // i18n: tts_join_success
     await interaction.reply({
-      content: `Joined ${voiceChannel.name}! I'll read messages from this channel.`,
+      content: `Joined ${voiceChannel.name}! I'll read messages from this voice channel's chat.`,
     })
   } catch (error) {
     log.error(

@@ -104,27 +104,27 @@ describe('message reader channel binding', () => {
     enqueueTtsText.mockResolvedValue({ accepted: true })
   })
 
-  it('queues messages from the text channel bound at join time', async () => {
+  it('queues messages from the voice channel chat bound at join time', async () => {
     getVoiceConnection.mockReturnValue({ joinConfig: { channelId: 'voice-1' } })
     const emitter = new EventEmitter()
     attachMessageReader(
       emitter as Client,
-      buildCtx({ guildId: 'guild-1', channelId: 'voice-1', boundTextChannelId: 'text-1' }),
+      buildCtx({ guildId: 'guild-1', channelId: 'voice-1', boundTextChannelId: 'voice-1' }),
     )
 
-    emitter.emit('messageCreate', buildMessage('text-1'))
+    emitter.emit('messageCreate', buildMessage('voice-1'))
     await vi.waitFor(() => expect(enqueueTtsText).toHaveBeenCalledTimes(1))
   })
 
-  it('ignores messages outside the bound text channel', async () => {
+  it('ignores messages from the command channel when it is not the voice channel chat', async () => {
     getVoiceConnection.mockReturnValue({ joinConfig: { channelId: 'voice-1' } })
     const emitter = new EventEmitter()
     attachMessageReader(
       emitter as Client,
-      buildCtx({ guildId: 'guild-1', channelId: 'voice-1', boundTextChannelId: 'text-1' }),
+      buildCtx({ guildId: 'guild-1', channelId: 'voice-1', boundTextChannelId: 'voice-1' }),
     )
 
-    emitter.emit('messageCreate', buildMessage('text-2'))
+    emitter.emit('messageCreate', buildMessage('command-text-channel'))
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(enqueueTtsText).not.toHaveBeenCalled()
