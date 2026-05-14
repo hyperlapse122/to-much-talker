@@ -1,5 +1,50 @@
 # @to-much-talker/config
 
+## 0.2.0
+
+### Minor Changes
+
+- 5fb6c73: `v0.2.0`: configurable per-message limits, gap-free playback, and voice-channel-bound reading.
+
+  ### `@to-much-talker/server`
+  - **New `/tts settings server-max-chars` and `/tts settings channel-max-chars`
+    subcommands** — view, set, or reset the per-message character limit at the
+    server or channel scope. Values clamp through the existing settings
+    hierarchy (User ≤ Channel ≤ Server) so a channel override cannot exceed
+    the server cap. Integer range `1..2000`.
+  - **`/tts say` honors the configured limit at runtime** — the resolved limit
+    flows through the runtime cache, and oversize messages are rejected with a
+    localized error instead of being truncated silently.
+  - **`/tts join` now binds the reader to the voice channel's chat**, not the
+    text channel where the command was invoked. Joining a voice channel from
+    any text channel makes the bot read that voice channel's built-in chat.
+  - **Queued audio prefetch (depth 3)** — the next up-to-three queued segments
+    are synthesized while the current one is playing, eliminating audible gaps
+    between back-to-back messages on the queue.
+
+  ### `@to-much-talker/settings-core`
+  - New `serverMaxChars` and `channelMaxChars` clamps wired into the resolver
+    with hierarchy enforcement and round-trip tests.
+
+  ### `@to-much-talker/i18n`
+  - New message keys for the `server-max-chars` / `channel-max-chars` flows in
+    `en`, `ko`, `ja`.
+
+  ### `@to-much-talker/docs`
+  - Markdown headings normalized to array shorthand to avoid hydration drift.
+  - `/tts join` command page clarifies that the reader is bound to the voice
+    channel's chat.
+
+  ### CI / release pipeline
+  - `release.yml` now publishes a GitHub Release with extracted CHANGELOG
+    notes and explicitly dispatches the multi-arch Docker workflow on the
+    freshly pushed `v*` tag.
+
+### Patch Changes
+
+- Updated dependencies [5fb6c73]
+  - @to-much-talker/shared@0.2.0
+
 ## 0.1.0
 
 ### Minor Changes
