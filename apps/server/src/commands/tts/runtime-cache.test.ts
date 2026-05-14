@@ -1,14 +1,19 @@
-import { OpenRouterClient } from '@to-much-talker/ai'
 import { encrypt, parseMasterKey } from '@to-much-talker/crypto'
 import { describe, expect, it, vi } from 'vitest'
 import type { CommandContext } from '../context.js'
-import {
-  getGuildTtsRuntime,
-  invalidateTtsRuntimeCache,
-  resolveUserTtsModel,
-  resolveUserTtsPreset,
-  type TtsRuntimeConfig,
-} from './runtime-cache.js'
+import type { TtsRuntimeConfig } from './runtime-cache.js'
+
+vi.mock('@to-much-talker/ai', () => ({
+  OpenRouterClient: class OpenRouterClient {
+    public constructor(readonly opts: unknown) {
+      void opts
+    }
+  },
+}))
+
+const { OpenRouterClient } = await import('@to-much-talker/ai')
+const { getGuildTtsRuntime, invalidateTtsRuntimeCache, resolveUserTtsModel, resolveUserTtsPreset } =
+  await import('./runtime-cache.js')
 
 const GEMINI_MODEL = 'google/gemini-3.1-flash-tts-preview'
 const OPENAI_MODEL = 'openai/gpt-4o-mini-tts-2025-12-15'
