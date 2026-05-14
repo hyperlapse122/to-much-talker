@@ -12,6 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      # Needed for the trailing `gh workflow run docker.yml --ref v*` dispatch
+      # at the end of this job. Without `actions: write` that call fails with
+      # HTTP 403 "Resource not accessible by integration".
+      actions: write
 
     steps:
       - uses: actions/checkout@v4
