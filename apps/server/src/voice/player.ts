@@ -1,13 +1,7 @@
 import { EventEmitter } from 'node:events'
 import { Readable } from 'node:stream'
-import {
-  AudioPlayerStatus,
-  createAudioPlayer,
-  VoiceConnectionStatus,
-  type AudioPlayer,
-  type AudioResource,
-  type VoiceConnection,
-} from '@discordjs/voice'
+import type { AudioPlayer, AudioResource, VoiceConnection } from '@discordjs/voice'
+import { AudioPlayerStatus, createAudioPlayer, VoiceConnectionStatus } from '@discordjs/voice'
 import { logger } from '../logger.js'
 import type { AudioInputFormat } from './pipeline.js'
 import { createAudioStream } from './pipeline.js'
@@ -75,8 +69,11 @@ export class Player extends EventEmitter<PlayerEvents> {
     })
   }
 
-  public async playFromBuffer(buf: Buffer, format: AudioInputFormat): Promise<void> {
-    const playbackTimeoutMs = PLAYBACK_GRACE_MS + (buf.length / ESTIMATED_BYTES_PER_SECOND) * 1_000
+  public async playFromBuffer(
+    buf: Buffer,
+    format: AudioInputFormat,
+    playbackTimeoutMs = PLAYBACK_GRACE_MS + (buf.length / ESTIMATED_BYTES_PER_SECOND) * 1_000,
+  ): Promise<void> {
     await this.playFromReadable(Readable.from([buf]), format, playbackTimeoutMs)
   }
 

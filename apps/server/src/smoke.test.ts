@@ -1,3 +1,4 @@
+import { Readable } from 'node:stream'
 import { type MockInteraction, mockChatInputInteraction } from '@to-much-talker/test-utils'
 import { ButtonStyle, MessageFlags, PermissionFlagsBits } from 'discord.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -36,6 +37,7 @@ vi.mock('@discordjs/voice', () => ({
 }))
 
 vi.mock('./voice/index.js', () => ({
+  audioBytesToOpus: vi.fn((input: Buffer) => Readable.from([input])),
   joinVoice: vi.fn(),
   leaveVoice: vi.fn(),
   stopIdleWatcher: vi.fn(),

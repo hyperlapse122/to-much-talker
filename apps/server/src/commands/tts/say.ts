@@ -1,9 +1,10 @@
+import type { Readable } from 'node:stream'
 import { getVoiceConnection } from '@discordjs/voice'
-import { synthesizeStream } from '@to-much-talker/ai'
+import { synthesize } from '@to-much-talker/ai'
 import { m } from '@to-much-talker/i18n'
 import { type ChatInputCommandInteraction, MessageFlags } from 'discord.js'
 import type { Logger } from '../../logger.js'
-import { getOrCreatePlayer } from '../../voice/index.js'
+import { audioBytesToOpus, getOrCreatePlayer } from '../../voice/index.js'
 import type { CommandContext } from '../context.js'
 import {
   getGuildTtsRuntime,
@@ -45,12 +46,26 @@ interface QueueTtsResult {
 }
 
 interface SynthesizedTtsStream {
-  readonly audio: ReadableStream<Uint8Array>
+  readonly audio: Buffer
   readonly format: TtsPlaybackFormat
   readonly model: string
 }
 
+interface PreparedTtsAudio {
+  readonly audio: Buffer
+  readonly model: string
+  readonly synthStartMs: number
+  readonly preparedAtMs: number
+}
+
+interface PrefetchQueueState {
+  readonly slots: Promise<void>[]
+  nextSlot: number
+}
+
+const TTS_PREFETCH_DEPTH = 3
 const playbackQueues = new Map<string, Promise<void>>()
+const prefetchQueues = new Map<string, PrefetchQueueState>()
 
 function nowMs(): number {
   return performance.now()
@@ -67,30 +82,48 @@ function ttsRequestForPreset(preset: TtsVoicePreset): {
   return { format: preset.format, voice: preset.voice }
 }
 
-function instrumentFirstAudioByte(
-  audio: ReadableStream<Uint8Array>,
-  onFirstByte: () => void,
-): ReadableStream<Uint8Array> {
-  const reader = audio.getReader()
-  let firstChunkSeen = false
-  return new ReadableStream<Uint8Array>({
-    async pull(controller) {
-      const result = await reader.read()
-      if (result.done) {
-        controller.close()
-        return
-      }
+function getOrCreatePrefetchQueue(guildId: string): PrefetchQueueState {
+  let queue = prefetchQueues.get(guildId)
+  if (queue === undefined) {
+    queue = {
+      slots: Array.from({ length: TTS_PREFETCH_DEPTH }, () => Promise.resolve()),
+      nextSlot: 0,
+    }
+    prefetchQueues.set(guildId, queue)
+  }
+  return queue
+}
 
-      if (!firstChunkSeen) {
-        firstChunkSeen = true
-        onFirstByte()
-      }
-      controller.enqueue(result.value)
-    },
-    cancel(reason) {
-      return reader.cancel(reason)
-    },
-  })
+function scheduleTtsPrefetch(
+  guildId: string,
+  prepare: () => Promise<PreparedTtsAudio | null>,
+): Promise<PreparedTtsAudio | null> {
+  const queue = getOrCreatePrefetchQueue(guildId)
+  const slot = queue.nextSlot
+  queue.nextSlot = (queue.nextSlot + 1) % queue.slots.length
+
+  const previous = queue.slots[slot] ?? Promise.resolve()
+  const prepared = previous.catch(() => undefined).then(() => prepare())
+  queue.slots[slot] = prepared.then(
+    () => undefined,
+    () => undefined,
+  )
+  return prepared
+}
+
+async function readableToBuffer(stream: Readable): Promise<Buffer> {
+  const chunks: Buffer[] = []
+  for await (const chunk of stream) {
+    chunks.push(audioChunkToBuffer(chunk))
+  }
+  return Buffer.concat(chunks)
+}
+
+function audioChunkToBuffer(chunk: unknown): Buffer {
+  if (Buffer.isBuffer(chunk)) return chunk
+  if (chunk instanceof Uint8Array) return Buffer.from(chunk)
+  if (typeof chunk === 'string') return Buffer.from(chunk)
+  throw new TypeError('Unsupported audio chunk type')
 }
 
 /**
@@ -213,11 +246,14 @@ export async function enqueueTtsText(
     }
   }
 
-  const previous = playbackQueues.get(params.guildId) ?? Promise.resolve()
   const queuedAtMs = nowMs()
+  const prepared = scheduleTtsPrefetch(params.guildId, () =>
+    prepareQueuedText(ctx, log, { ...params, text, receivedAtMs }, runtime, queuedAtMs),
+  )
+  const previous = playbackQueues.get(params.guildId) ?? Promise.resolve()
   const task = previous
     .catch(() => undefined)
-    .then(() => playQueuedText(ctx, log, { ...params, text, receivedAtMs }, runtime, queuedAtMs))
+    .then(() => playPreparedText(log, { ...params, text, receivedAtMs }, queuedAtMs, prepared))
     .finally(() => {
       if (playbackQueues.get(params.guildId) === task) {
         playbackQueues.delete(params.guildId)
@@ -249,16 +285,16 @@ export async function enqueueTtsText(
   return { accepted: true, truncated }
 }
 
-async function playQueuedText(
+async function prepareQueuedText(
   ctx: CommandContext,
   log: Logger,
   params: QueueTtsParams,
   runtime: Awaited<ReturnType<typeof getGuildTtsRuntime>>,
   queuedAtMs: number,
-): Promise<void> {
-  if (runtime === null) return
+): Promise<PreparedTtsAudio | null> {
+  if (runtime === null) return null
   const connection = getVoiceConnection(params.guildId)
-  if (connection === undefined) return
+  if (connection === undefined) return null
 
   const synthStartMs = nowMs()
   const preset = await resolveUserTtsPreset(ctx, params.guildId, params.userId, runtime)
@@ -270,8 +306,39 @@ async function playQueuedText(
   })
 
   if (result === null) {
-    return
+    return null
   }
+
+  const opus = await readableToBuffer(audioBytesToOpus(result.audio, result.format))
+  const preparedAtMs = nowMs()
+
+  log.info(
+    {
+      guildId: params.guildId,
+      channelId: params.channelId,
+      source: params.source,
+      model: result.model,
+      queueWaitMs: Math.round(synthStartMs - queuedAtMs),
+      synthToReadyMs: Math.round(preparedAtMs - synthStartMs),
+      totalToReadyMs: Math.round(preparedAtMs - (params.receivedAtMs ?? queuedAtMs)),
+    },
+    'Prepared TTS audio',
+  )
+
+  return { audio: opus, model: result.model, synthStartMs, preparedAtMs }
+}
+
+async function playPreparedText(
+  log: Logger,
+  params: QueueTtsParams,
+  queuedAtMs: number,
+  prepared: Promise<PreparedTtsAudio | null>,
+): Promise<void> {
+  const connection = getVoiceConnection(params.guildId)
+  if (connection === undefined) return
+
+  const result = await prepared
+  if (result === null) return
 
   const player = getOrCreatePlayer(params.guildId)
   player.attachConnection(connection)
@@ -283,40 +350,27 @@ async function playQueuedText(
         channelId: params.channelId,
         source: params.source,
         model: result.model,
-        queueWaitMs: Math.round(synthStartMs - queuedAtMs),
-        synthToPlaybackMs: Math.round(playbackStartMs - synthStartMs),
+        queueWaitMs: Math.round(result.synthStartMs - queuedAtMs),
+        readyToPlaybackMs: Math.round(playbackStartMs - result.preparedAtMs),
         totalToPlaybackMs: Math.round(playbackStartMs - (params.receivedAtMs ?? queuedAtMs)),
       },
       'TTS playback started',
     )
   }
   player.once('start', playbackStartListener)
-  const audio = instrumentFirstAudioByte(result.audio, () => {
-    const firstByteMs = nowMs()
-    log.info(
-      {
-        guildId: params.guildId,
-        channelId: params.channelId,
-        source: params.source,
-        synthFirstByteMs: Math.round(firstByteMs - synthStartMs),
-        totalToFirstByteMs: Math.round(firstByteMs - (params.receivedAtMs ?? queuedAtMs)),
-      },
-      'TTS audio stream first byte',
-    )
-  })
   log.info(
     {
       guildId: params.guildId,
       channelId: params.channelId,
       source: params.source,
       model: result.model,
-      format: result.format,
-      queueWaitMs: Math.round(synthStartMs - queuedAtMs),
+      format: 'opus',
+      queueWaitMs: Math.round(result.synthStartMs - queuedAtMs),
     },
-    'Playing streamed TTS message',
+    'Playing prepared TTS message',
   )
   try {
-    await player.playFromWebStream(audio, result.format, playbackTimeoutMs(params.text))
+    await player.playFromBuffer(result.audio, 'opus', playbackTimeoutMs(params.text))
   } finally {
     player.off('start', playbackStartListener)
   }
@@ -390,14 +444,14 @@ async function synthesizeForPreset(
   | {
       readonly ok: true
       readonly value: {
-        readonly audio: ReadableStream<Uint8Array>
+        readonly audio: Buffer
         readonly format: TtsPlaybackFormat
       }
     }
   | { readonly ok: false; readonly error: Error }
 > {
   const request = ttsRequestForPreset(preset)
-  const result = await synthesizeStream(runtime.client, {
+  const result = await synthesize(runtime.client, {
     model: preset.model,
     input,
     format: request.format,
