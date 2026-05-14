@@ -1,5 +1,11 @@
 # @to-much-talker/server
 
+## 0.2.1
+
+### Patch Changes
+
+- 05615cb: Fix Docker audio playback by preserving prepared Opus packet boundaries and add safer runtime logs around command, voice, and TTS playback paths.
+
 ## 0.2.0
 
 ### Minor Changes
