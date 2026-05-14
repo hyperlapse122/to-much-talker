@@ -7,7 +7,7 @@ order: 2
 # Commands Reference
 
 ## /tts join
-Join your voice channel.
+Join your current voice channel and read messages from that voice channel's chat.
 **Usage**: `/tts join`
 
 ## /tts leave
