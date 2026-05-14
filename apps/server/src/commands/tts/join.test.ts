@@ -45,6 +45,7 @@ function buildCtx(failBind = false): {
   }
   settingsCache: { invalidate: ReturnType<typeof vi.fn> }
   ipcTransport: { broadcastInvalidate: ReturnType<typeof vi.fn> }
+  insertValues: unknown[]
 } {
   const childLogger = {
     info: vi.fn(),
@@ -77,6 +78,7 @@ function buildCtx(failBind = false): {
     run,
     onConflictDoUpdate: vi.fn(() => insertResult),
   }
+  const insertValues: unknown[] = []
   const ctx = {
     client: null,
     config: null,
@@ -91,7 +93,10 @@ function buildCtx(failBind = false): {
           }),
         }),
         insert: vi.fn(() => ({
-          values: () => insertResult,
+          values: (value: unknown) => {
+            insertValues.push(value)
+            return insertResult
+          },
         })),
       },
     },
@@ -100,7 +105,13 @@ function buildCtx(failBind = false): {
     logger,
   }
 
-  return { ctx: ctx as unknown as CommandContext, childLogger, settingsCache, ipcTransport }
+  return {
+    ctx: ctx as unknown as CommandContext,
+    childLogger,
+    settingsCache,
+    ipcTransport,
+    insertValues,
+  }
 }
 
 function hasJoinedReply(calls: readonly (readonly unknown[])[]): boolean {
@@ -154,13 +165,14 @@ describe('/tts join', () => {
       commandName: 'tts',
       subcommand: 'join',
       guildId: '123456789012345679',
+      channelId: 'command-text-channel',
     })
     const interaction = withGuildVoice(base, '123456789012345679', {
       id: '123456789012345680',
       name: 'Stage',
       type: ChannelType.GuildStageVoice,
     })
-    const { ctx, settingsCache, ipcTransport } = buildCtx()
+    const { ctx, settingsCache, ipcTransport, insertValues } = buildCtx()
 
     await handleTtsJoin(interaction as never, ctx)
 
@@ -168,6 +180,15 @@ describe('/tts join', () => {
     expect(leaveVoice).not.toHaveBeenCalled()
     expect(settingsCache.invalidate).toHaveBeenCalledWith('123456789012345679')
     expect(ipcTransport.broadcastInvalidate).toHaveBeenCalledWith('123456789012345679')
+    expect(insertValues).toContainEqual(
+      expect.objectContaining({
+        channelId: '123456789012345680',
+        boundTextChannelId: '123456789012345680',
+      }),
+    )
+    expect(insertValues).not.toContainEqual(
+      expect.objectContaining({ boundTextChannelId: 'command-text-channel' }),
+    )
     expect(hasJoinedReply(base.reply.mock.calls)).toBe(true)
   })
 })
