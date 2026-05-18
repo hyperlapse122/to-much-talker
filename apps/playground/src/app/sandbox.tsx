@@ -4,7 +4,8 @@ import type { JSX } from 'react'
 
 const TTS_MODELS = [
   { id: 'google/gemini-3.1-flash-tts-preview', label: 'Gemini Flash TTS' },
-  { id: 'google/gemini-3.1-flash-tts-preview', label: 'GPT-4o Mini TTS' },
+  { id: 'openai/gpt-4o-mini-tts-2025-12-15', label: 'GPT-4o Mini TTS' },
+  { id: 'x-ai/grok-voice-tts-1.0', label: 'Grok Voice TTS 1.0' },
 ]
 
 function Sandbox(): JSX.Element {
@@ -17,7 +18,7 @@ function Sandbox(): JSX.Element {
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const maxChars = 500
 
-  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
+  const handleSubmit = async (e: { preventDefault: () => void }): Promise<void> => {
     e.preventDefault()
     if (text.length === 0) return
 
