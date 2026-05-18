@@ -32,7 +32,11 @@ test.describe('TTS Sandbox', () => {
     await page.goto('/sandbox')
     const select = page.locator('select#model-select')
     await expect(select).toBeVisible()
-    await expect(select.locator('option')).toHaveCount(2)
+    await expect(select.locator('option')).toHaveText([
+      'Gemini Flash TTS',
+      'GPT-4o Mini TTS',
+      'Grok Voice TTS 1.0',
+    ])
   })
 
   test('synthesize button is rendered', async ({ page }) => {
