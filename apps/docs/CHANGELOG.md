@@ -1,5 +1,30 @@
 # @to-much-talker/docs
 
+## 0.2.1
+
+### Patch Changes
+
+- 5e7f9e1: CI infrastructure: upgrade all GitHub Actions to their latest majors and align every workflow on the Node 24 runtime.
+
+  ### CI / release pipeline
+  - `actions/checkout` → `v6`, `actions/setup-node` → `v6`, `actions/cache` → `v5`,
+    `actions/upload-artifact` / `actions/download-artifact` → `v6`,
+    `actions/configure-pages` → `v6`, `actions/deploy-pages` → `v5`,
+    `actions/upload-pages-artifact` → `v4`,
+    `docker/setup-buildx-action` → `v4`, `docker/login-action` → `v4`,
+    `docker/metadata-action` → `v6`, `docker/build-push-action` → `v7`,
+    `microsoft/playwright-github-action` → `v2`.
+  - All `setup-node` steps pinned to `node-version: '24'` across `ci.yml`,
+    `docker.yml`, `docs-pages.yml`, `e2e.yml`, and `release.yml`.
+
+  No runtime behavior changes; published artifacts are byte-equivalent.
+
+  ### Repo policy
+  - `AGENTS.md` documents that `release.yml` owns versioning, tagging, the GitHub
+    Release, and Docker dispatch. Agents add changesets only; they must not run
+    `changeset version`/`publish`, create `v*` tags, or hand-edit generated
+    `package.json` / `CHANGELOG.md`.
+
 ## 0.2.0
 
 ### Minor Changes
