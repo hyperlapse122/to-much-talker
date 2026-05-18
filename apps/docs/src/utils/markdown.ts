@@ -24,6 +24,7 @@ export interface MarkdownResult {
 }
 
 const headingTagPattern = /^h([1-6])$/u
+const fencedCodeBlockPattern = /```/u
 
 function isHeadingElement(node: Element): boolean {
   return headingTagPattern.test(node.tagName)
@@ -64,7 +65,7 @@ function createHeadingExtractor(headings: MarkdownHeading[]): Plugin<[], Root> {
 export async function renderMarkdown(content: string): Promise<MarkdownResult> {
   const headings: MarkdownHeading[] = []
 
-  const file = await unified()
+  const processor = unified()
     .use(remarkParse)
     .use(remarkGfm)
     .use(remarkRehype, { allowDangerousHtml: true })
@@ -74,10 +75,15 @@ export async function renderMarkdown(content: string): Promise<MarkdownResult> {
       behavior: 'wrap',
       properties: { className: ['anchor'] },
     })
-    .use(rehypeShiki, {
+
+  if (fencedCodeBlockPattern.test(content)) {
+    processor.use(rehypeShiki, {
       themes: { light: 'github-light', dark: 'tokyo-night' },
       defaultColor: false,
     })
+  }
+
+  const file = await processor
     .use(createHeadingExtractor(headings))
     .use(rehypeStringify)
     .process(content)

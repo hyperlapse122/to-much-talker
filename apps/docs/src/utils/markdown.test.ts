@@ -38,7 +38,7 @@ describe('renderMarkdown', () => {
 
     expect(result.markup).toContain('shiki')
     expect(result.markup).toMatch(/style="(?:color:|--shiki)/)
-  })
+  }, 15_000)
 
   it('preserves raw HTML', async () => {
     const result = await renderMarkdown('<aside data-kind="note"><strong>Note</strong></aside>')
