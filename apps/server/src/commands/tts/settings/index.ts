@@ -265,7 +265,7 @@ function buildVoicePickerContent(
     return `- ${m.tts_settings_voice_picker_option({
       label: preset.label,
       marker,
-      description: preset.description,
+      description: preset.description(),
     })}`
   })
   return [m.tts_settings_voice_picker_header(), ...lines].join('\n')

@@ -7,11 +7,14 @@ import type { CommandContext } from '../context.js'
 import {
   defaultVoicePresetForModel,
   findVoicePresetByVoice,
+  GEMINI_TTS_MODEL,
+  GPT_4O_MINI_TTS_MODEL,
+  GROK_VOICE_TTS_MODEL,
   type TtsVoicePreset,
 } from './voice-presets.js'
 
-const DEFAULT_MODEL = 'google/gemini-3.1-flash-tts-preview'
-const SUPPORTED_TTS_MODELS = [DEFAULT_MODEL, 'openai/gpt-4o-mini-tts-2025-12-15'] as const
+const DEFAULT_MODEL = GEMINI_TTS_MODEL
+const SUPPORTED_TTS_MODELS = [DEFAULT_MODEL, GPT_4O_MINI_TTS_MODEL, GROK_VOICE_TTS_MODEL] as const
 type SupportedTtsModel = (typeof SUPPORTED_TTS_MODELS)[number]
 
 interface StoredApiKey {
