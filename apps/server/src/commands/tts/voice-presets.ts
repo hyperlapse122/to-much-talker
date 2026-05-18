@@ -1,11 +1,12 @@
 import type { AudioFormat } from '@to-much-talker/ai'
+import { m } from '@to-much-talker/i18n'
 
 export type TtsPlaybackFormat = Extract<AudioFormat, 'mp3' | 'pcm'>
 
 export interface TtsVoicePreset {
   readonly id: string
   readonly label: string
-  readonly description: string
+  readonly description: () => string
   readonly model: string
   readonly voice: string
   readonly format: TtsPlaybackFormat
@@ -13,12 +14,13 @@ export interface TtsVoicePreset {
 
 export const GEMINI_TTS_MODEL = 'google/gemini-3.1-flash-tts-preview'
 export const GPT_4O_MINI_TTS_MODEL = 'openai/gpt-4o-mini-tts-2025-12-15'
+export const GROK_VOICE_TTS_MODEL = 'x-ai/grok-voice-tts-1.0'
 
 export const TTS_VOICE_PRESETS = [
   {
     id: 'gemini-zephyr',
     label: 'Zephyr',
-    description: 'Bright, clear, and upbeat.',
+    description: m.tts_voice_description_gemini_zephyr,
     model: GEMINI_TTS_MODEL,
     voice: 'Zephyr',
     format: 'pcm',
@@ -26,7 +28,7 @@ export const TTS_VOICE_PRESETS = [
   {
     id: 'gemini-puck',
     label: 'Puck',
-    description: 'Playful, lively, and conversational.',
+    description: m.tts_voice_description_gemini_puck,
     model: GEMINI_TTS_MODEL,
     voice: 'Puck',
     format: 'pcm',
@@ -34,7 +36,7 @@ export const TTS_VOICE_PRESETS = [
   {
     id: 'gemini-charon',
     label: 'Charon',
-    description: 'Deep, steady, and grounded.',
+    description: m.tts_voice_description_gemini_charon,
     model: GEMINI_TTS_MODEL,
     voice: 'Charon',
     format: 'pcm',
@@ -42,7 +44,7 @@ export const TTS_VOICE_PRESETS = [
   {
     id: 'gemini-kore',
     label: 'Kore',
-    description: 'Warm, smooth, and balanced.',
+    description: m.tts_voice_description_gemini_kore,
     model: GEMINI_TTS_MODEL,
     voice: 'Kore',
     format: 'pcm',
@@ -50,7 +52,7 @@ export const TTS_VOICE_PRESETS = [
   {
     id: 'gemini-fenrir',
     label: 'Fenrir',
-    description: 'Firm, energetic, and direct.',
+    description: m.tts_voice_description_gemini_fenrir,
     model: GEMINI_TTS_MODEL,
     voice: 'Fenrir',
     format: 'pcm',
@@ -58,7 +60,7 @@ export const TTS_VOICE_PRESETS = [
   {
     id: 'gemini-leda',
     label: 'Leda',
-    description: 'Gentle, light, and friendly.',
+    description: m.tts_voice_description_gemini_leda,
     model: GEMINI_TTS_MODEL,
     voice: 'Leda',
     format: 'pcm',
@@ -66,7 +68,7 @@ export const TTS_VOICE_PRESETS = [
   {
     id: 'gemini-orus',
     label: 'Orus',
-    description: 'Calm, measured, and resonant.',
+    description: m.tts_voice_description_gemini_orus,
     model: GEMINI_TTS_MODEL,
     voice: 'Orus',
     format: 'pcm',
@@ -74,7 +76,7 @@ export const TTS_VOICE_PRESETS = [
   {
     id: 'gemini-aoede',
     label: 'Aoede',
-    description: 'Expressive, bright, and melodic.',
+    description: m.tts_voice_description_gemini_aoede,
     model: GEMINI_TTS_MODEL,
     voice: 'Aoede',
     format: 'pcm',
@@ -82,7 +84,7 @@ export const TTS_VOICE_PRESETS = [
   {
     id: 'openai-alloy',
     label: 'Alloy',
-    description: 'Neutral, versatile, and natural.',
+    description: m.tts_voice_description_openai_alloy,
     model: GPT_4O_MINI_TTS_MODEL,
     voice: 'alloy',
     format: 'mp3',
@@ -90,7 +92,7 @@ export const TTS_VOICE_PRESETS = [
   {
     id: 'openai-ash',
     label: 'Ash',
-    description: 'Relaxed, low, and composed.',
+    description: m.tts_voice_description_openai_ash,
     model: GPT_4O_MINI_TTS_MODEL,
     voice: 'ash',
     format: 'mp3',
@@ -98,7 +100,7 @@ export const TTS_VOICE_PRESETS = [
   {
     id: 'openai-ballad',
     label: 'Ballad',
-    description: 'Warm, expressive, and storytelling-focused.',
+    description: m.tts_voice_description_openai_ballad,
     model: GPT_4O_MINI_TTS_MODEL,
     voice: 'ballad',
     format: 'mp3',
@@ -106,7 +108,7 @@ export const TTS_VOICE_PRESETS = [
   {
     id: 'openai-coral',
     label: 'Coral',
-    description: 'Friendly, bright, and approachable.',
+    description: m.tts_voice_description_openai_coral,
     model: GPT_4O_MINI_TTS_MODEL,
     voice: 'coral',
     format: 'mp3',
@@ -114,7 +116,7 @@ export const TTS_VOICE_PRESETS = [
   {
     id: 'openai-echo',
     label: 'Echo',
-    description: 'Clear, crisp, and confident.',
+    description: m.tts_voice_description_openai_echo,
     model: GPT_4O_MINI_TTS_MODEL,
     voice: 'echo',
     format: 'mp3',
@@ -122,7 +124,7 @@ export const TTS_VOICE_PRESETS = [
   {
     id: 'openai-fable',
     label: 'Fable',
-    description: 'Animated, characterful, and narrative.',
+    description: m.tts_voice_description_openai_fable,
     model: GPT_4O_MINI_TTS_MODEL,
     voice: 'fable',
     format: 'mp3',
@@ -130,7 +132,7 @@ export const TTS_VOICE_PRESETS = [
   {
     id: 'openai-nova',
     label: 'Nova',
-    description: 'Energetic, smooth, and modern.',
+    description: m.tts_voice_description_openai_nova,
     model: GPT_4O_MINI_TTS_MODEL,
     voice: 'nova',
     format: 'mp3',
@@ -138,7 +140,7 @@ export const TTS_VOICE_PRESETS = [
   {
     id: 'openai-onyx',
     label: 'Onyx',
-    description: 'Deep, authoritative, and polished.',
+    description: m.tts_voice_description_openai_onyx,
     model: GPT_4O_MINI_TTS_MODEL,
     voice: 'onyx',
     format: 'mp3',
@@ -146,7 +148,7 @@ export const TTS_VOICE_PRESETS = [
   {
     id: 'openai-sage',
     label: 'Sage',
-    description: 'Calm, thoughtful, and reassuring.',
+    description: m.tts_voice_description_openai_sage,
     model: GPT_4O_MINI_TTS_MODEL,
     voice: 'sage',
     format: 'mp3',
@@ -154,9 +156,49 @@ export const TTS_VOICE_PRESETS = [
   {
     id: 'openai-shimmer',
     label: 'Shimmer',
-    description: 'Soft, bright, and expressive.',
+    description: m.tts_voice_description_openai_shimmer,
     model: GPT_4O_MINI_TTS_MODEL,
     voice: 'shimmer',
+    format: 'mp3',
+  },
+  {
+    id: 'grok-eve',
+    label: 'Eve',
+    description: m.tts_voice_description_grok_eve,
+    model: GROK_VOICE_TTS_MODEL,
+    voice: 'eve',
+    format: 'mp3',
+  },
+  {
+    id: 'grok-ara',
+    label: 'Ara',
+    description: m.tts_voice_description_grok_ara,
+    model: GROK_VOICE_TTS_MODEL,
+    voice: 'ara',
+    format: 'mp3',
+  },
+  {
+    id: 'grok-rex',
+    label: 'Rex',
+    description: m.tts_voice_description_grok_rex,
+    model: GROK_VOICE_TTS_MODEL,
+    voice: 'rex',
+    format: 'mp3',
+  },
+  {
+    id: 'grok-sal',
+    label: 'Sal',
+    description: m.tts_voice_description_grok_sal,
+    model: GROK_VOICE_TTS_MODEL,
+    voice: 'sal',
+    format: 'mp3',
+  },
+  {
+    id: 'grok-leo',
+    label: 'Leo',
+    description: m.tts_voice_description_grok_leo,
+    model: GROK_VOICE_TTS_MODEL,
+    voice: 'leo',
     format: 'mp3',
   },
 ] as const satisfies readonly TtsVoicePreset[]

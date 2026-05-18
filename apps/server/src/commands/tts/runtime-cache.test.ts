@@ -17,6 +17,7 @@ const { getGuildTtsRuntime, invalidateTtsRuntimeCache, resolveUserTtsModel, reso
 
 const GEMINI_MODEL = 'google/gemini-3.1-flash-tts-preview'
 const OPENAI_MODEL = 'openai/gpt-4o-mini-tts-2025-12-15'
+const GROK_MODEL = 'x-ai/grok-voice-tts-1.0'
 const CURRENT_MASTER_KEY = Buffer.alloc(32, 1).toString('base64')
 const OLD_MASTER_KEY = Buffer.alloc(32, 2).toString('base64')
 
@@ -174,6 +175,7 @@ describe('TTS runtime preference resolution', () => {
     const ctx = buildGuildCtx({
       'guild-1:user-1': { preferredVoice: 'Zephyr' },
       'guild-2:user-1': { preferredVoice: 'alloy' },
+      'guild-3:user-1': { preferredVoice: 'eve' },
     })
 
     const guildOnePreset = await resolveUserTtsPreset(
@@ -186,11 +188,19 @@ describe('TTS runtime preference resolution', () => {
       ctx,
       'guild-2',
       'user-1',
-      buildRuntime([GEMINI_MODEL, OPENAI_MODEL]),
+      buildRuntime([GEMINI_MODEL, OPENAI_MODEL, GROK_MODEL]),
+    )
+    const guildThreePreset = await resolveUserTtsPreset(
+      ctx,
+      'guild-3',
+      'user-1',
+      buildRuntime([GEMINI_MODEL, OPENAI_MODEL, GROK_MODEL]),
     )
 
     expect(guildOnePreset.voice).toBe('Zephyr')
     expect(guildTwoPreset.voice).toBe('alloy')
+    expect(guildThreePreset.model).toBe(GROK_MODEL)
+    expect(guildThreePreset.voice).toBe('eve')
   })
 
   it('does not reuse a preferred model from a different guild', async () => {
@@ -283,7 +293,27 @@ describe('TTS runtime model policy', () => {
     )
 
     expect(runtime?.defaultModel).toBe(GEMINI_MODEL)
-    expect(runtime?.allowedModels).toEqual([GEMINI_MODEL, OPENAI_MODEL])
+    expect(runtime?.allowedModels).toEqual([GEMINI_MODEL, OPENAI_MODEL, GROK_MODEL])
+  })
+
+  it('keeps Grok Voice TTS in sanitized guild settings', async () => {
+    const guildId = 'guild-grok-allowed'
+    invalidateTtsRuntimeCache(guildId)
+
+    const runtime = await getGuildTtsRuntime(
+      buildRuntimeLoadCtx({
+        apiKey: encryptedApiKey(CURRENT_MASTER_KEY, 7),
+        modelSettings: {
+          defaultModel: GROK_MODEL,
+          allowedModels: ['made-up/model', GROK_MODEL],
+          maxChars: 800,
+        },
+      }),
+      guildId,
+    )
+
+    expect(runtime?.defaultModel).toBe(GROK_MODEL)
+    expect(runtime?.allowedModels).toEqual([GROK_MODEL])
   })
 })
 
