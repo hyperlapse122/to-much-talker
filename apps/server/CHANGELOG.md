@@ -1,5 +1,11 @@
 # @to-much-talker/server
 
+## 0.3.0
+
+### Minor Changes
+
+- Add OpenRouter's `x-ai/grok-voice-tts-1.0` model with Eve, Ara, Rex, Sal, and Leo voice presets.
+
 ## 0.2.1
 
 ### Patch Changes
