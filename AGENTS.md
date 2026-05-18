@@ -163,6 +163,23 @@ Conventional Commits enforced via commitlint + lefthook:
 - `refactor(scope): description` — restructuring
 - `test(scope): description` — tests
 
+## Releasing
+
+Release is **fully automated** by [`.github/workflows/release.yml`](.github/workflows/release.yml) on pushes to `main`. The workflow runs `changeset version`, commits the bump, tags `v${VERSION}`, creates the GitHub Release, and dispatches the Docker image build.
+
+**Agents MUST:**
+
+- Add a changeset (`yarn changeset`) for every user-visible change. The interactive prompt selects affected packages and bump type (`major` / `minor` / `patch`); the resulting `.changeset/*.md` file MUST be committed alongside the change.
+- Treat the server package's version as the canonical monorepo tag — all public packages bump in lockstep via the changeset.
+
+**Agents MUST NOT:**
+
+- Run `yarn changeset version`, `yarn changeset publish`, `git tag v*`, `gh release create`, or otherwise cut a release locally. The CI workflow owns these steps.
+- Manually edit `package.json` versions, `CHANGELOG.md` files, or push tags. These are generated artifacts of `changeset version` running in CI.
+- Trigger the Docker workflow by hand on a release tag — `release.yml` dispatches it automatically after the tag is pushed.
+
+If a release appears broken (missed tag, missed Docker build, wrong version bump), stop and report to the user. Do not attempt to "fix it up" by hand-tagging or hand-publishing.
+
 ## User Documentation Sync
 
 The public docs site (`apps/docs/`) is the canonical user-facing reference. Agents MUST keep it in sync when code changes affect deployment or configuration.
