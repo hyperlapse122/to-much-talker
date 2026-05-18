@@ -24,9 +24,9 @@ jobs:
     outputs:
       turbo: ${{ steps.versions.outputs.turbo }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
       - id: versions
@@ -48,10 +48,10 @@ jobs:
       tags-playground: ${{ steps.set.outputs.tags-playground }}
       tags-docs: ${{ steps.set.outputs.tags-docs }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Extract metadata
         id: docker-meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.image }}
           tags: |
@@ -83,10 +83,10 @@ jobs:
           - platform: arm64
             runner: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -97,11 +97,11 @@ jobs:
             prune "@to-much-talker/${target}" --docker --out-dir "out-${target}"
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to GHCR
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -110,7 +110,7 @@ jobs:
       - name: Build per-arch image (push by digest)
         id: build
         if: github.event_name != 'pull_request'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./out-${{ matrix.image }}
           file: containers/${{ matrix.image }}.Dockerfile
@@ -122,7 +122,7 @@ jobs:
 
       - name: Build per-arch image (PR — no push)
         if: github.event_name == 'pull_request'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./out-${{ matrix.image }}
           file: containers/${{ matrix.image }}.Dockerfile
@@ -142,7 +142,7 @@ jobs:
 
       - name: Upload digest artifact
         if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: digests-${{ matrix.image }}-${{ matrix.platform }}
           path: ${{ runner.temp }}/digests/${{ matrix.image }}/*
@@ -163,17 +163,17 @@ jobs:
         image: [server, playground, docs]
     steps:
       - name: Download digest artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: ${{ runner.temp }}/digests
           pattern: digests-${{ matrix.image }}-*
           merge-multiple: true
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
